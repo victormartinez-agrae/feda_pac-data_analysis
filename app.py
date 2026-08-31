@@ -32,7 +32,7 @@ def cargar_datos(archivos: list[str]) -> pd.DataFrame:
         lista_dfs.append(df_aux)
 
     datos_df = pd.concat(lista_dfs, ignore_index=True)
-    orden_columnas = ["CONVOCATORIA"] + datos_df.columns[:-1]
+    orden_columnas = ["CONVOCATORIA"] + [c for c in datos_df.columns if c != "CONVOCATORIA"]
     datos_df = datos_df[orden_columnas]
 
 
