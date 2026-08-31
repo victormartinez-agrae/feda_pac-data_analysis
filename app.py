@@ -50,15 +50,6 @@ archivos_trabajo = ["Beneficiarios_municipio_ejercicio_financiero_2023.csv",
 
 datos_df = cargar_datos(archivos_trabajo)
 
-# Configuro columnas numéricas como float y columnas tipo fecha como datetime
-col_euros = ['FEAGA', 'FEADER', 'IMPORTECOFIN', 'FEADER_COFIN', 'IMPORTE_EUROS']
-for col in col_euros:
-    datos_df[col] = datos_df[col].str.replace(',', '.').astype(float)
-
-col_fecha = ['FEC_INI', 'FEC_FIN']
-for col in col_fecha:
-    datos_df[col] = pd.to_datetime(datos_df[col], format='%d/%m/%Y')
-
 # -----------------------------------------------------
 # 3. SELECCIÓN DE COLUMNAS A MOSTRAR
 # -----------------------------------------------------
