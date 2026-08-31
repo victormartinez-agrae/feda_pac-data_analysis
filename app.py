@@ -35,6 +35,16 @@ for fichero in archivos_trabajo:
 
 datos_df = pd.concat(lista_dfs, ignore_index=True)
 
+# Configuro columnas numéricas como float y columnas tipo fecha como datetime
+# numéricas (€)
+col_euros = ['FEAGA','FEADER','IMPORTECOFIN','FEADER_COFIN','IMPORTE_EUROS']
+for col in col_euros:
+  datos_pac[col] = datos_pac[col].str.replace(',','.').astype(float)
+# fechas
+col_fecha = ['FEC_INI','FEC_FIN']
+for col in col_fecha:
+  datos_pac[col] = pd.to_datetime(datos_pac[col], format='%d/%m/%Y')
+
 # -----------------------------------------------------
 # 3. SELECCIÓN DE COLUMNAS A MOSTRAR
 # -----------------------------------------------------
