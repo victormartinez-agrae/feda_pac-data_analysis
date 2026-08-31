@@ -119,13 +119,52 @@ if texto_busqueda:
     df_filtrado = df_filtrado[mask]
 
 # -----------------------------------------------------
-# 5. VISUALIZACIÓN DE LA TABLA
+# 5. ACUMULADOS (AGRUPACIÓN)
+# -----------------------------------------------------
+st.subheader("📈 Acumulados")
+
+columnas_texto = [c for c in df_filtrado.columns if not pd.api.types.is_numeric_dtype(df_filtrado[c])]
+columnas_numericas = [c for c in df_filtrado.columns if pd.api.types.is_numeric_dtype(df_filtrado[c]) and c != "year"]
+
+col_agrupacion = st.selectbox("Agrupar por columna", options=["(ninguna)"] + columnas_texto)
+col_valor = st.selectbox("Columna a acumular", options=columnas_numericas)
+
+if col_agrupacion != "(ninguna)":
+    df_acumulado = (
+        df_filtrado.groupby(col_agrupacion, dropna=False)[col_valor]
+        .sum()
+        .reset_index()
+        .sort_values(col_valor, ascending=False)
+    )
+    st.dataframe(
+        df_acumulado,
+        use_container_width=True,
+        column_config={
+            col_valor: st.column_config.NumberColumn(format="€ %.2f")
+        },
+    )
+
+# -----------------------------------------------------
+# 6. VISUALIZACIÓN DE LA TABLA
 # -----------------------------------------------------
 st.subheader(f"Datos seleccionados")
 st.caption(f"{len(df_filtrado)} filas de {len(datos_df)} totales")
 
 if columnas_seleccionadas:
-    st.dataframe(df_filtrado[columnas_seleccionadas], use_container_width=True)
+    # Construir configuración de columnas dinámicamente
+    column_config = {}
+    
+    for col in columnas_seleccionadas:
+        if col in ["FEC_INI", "FEC_FIN"]:
+            column_config[col] = st.column_config.DateColumn(format="DD/MM/YYYY")
+        elif col != "year" and pd.api.types.is_numeric_dtype(df_filtrado[col]):
+            column_config[col] = st.column_config.NumberColumn(format=" € %.2f")
+    
+    st.dataframe(
+        df_filtrado[columnas_seleccionadas],
+        use_container_width=True,
+        column_config=column_config,
+)
 else:
     st.warning("Selecciona al menos una columna para mostrar la tabla.")
 
