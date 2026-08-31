@@ -30,20 +30,19 @@ lista_dfs = []
 for fichero in archivos_trabajo:
     st.caption(f"Leyendo {fichero} ...")
     df_aux = cargar_csv(fichero)
-    df_aux['year']=int(fichero[-8:-4])
+    df_aux['year'] = int(fichero[-8:-4])
     lista_dfs.append(df_aux)
 
 datos_df = pd.concat(lista_dfs, ignore_index=True)
 
 # Configuro columnas numéricas como float y columnas tipo fecha como datetime
-# numéricas (€)
-col_euros = ['FEAGA','FEADER','IMPORTECOFIN','FEADER_COFIN','IMPORTE_EUROS']
+col_euros = ['FEAGA', 'FEADER', 'IMPORTECOFIN', 'FEADER_COFIN', 'IMPORTE_EUROS']
 for col in col_euros:
-  datos_df[col] = datos_df[col].str.replace(',','.').astype(float)
-# fechas
-col_fecha = ['FEC_INI','FEC_FIN']
+    datos_df[col] = datos_df[col].str.replace(',', '.').astype(float)
+
+col_fecha = ['FEC_INI', 'FEC_FIN']
 for col in col_fecha:
-  datos_df[col] = pd.to_datetime(datos_df[col], format='%d/%m/%Y')
+    datos_df[col] = pd.to_datetime(datos_df[col], format='%d/%m/%Y')
 
 # -----------------------------------------------------
 # 3. SELECCIÓN DE COLUMNAS A MOSTRAR
@@ -109,7 +108,6 @@ for col in columnas_a_filtrar:
         )
         df_filtrado = df_filtrado[df_filtrado[col].isin(seleccionados)]
 
-# También un filtro de texto libre (búsqueda general)
 texto_busqueda = st.sidebar.text_input("Búsqueda libre (en todas las columnas)")
 if texto_busqueda:
     mask = df_filtrado.apply(
@@ -119,50 +117,14 @@ if texto_busqueda:
     df_filtrado = df_filtrado[mask]
 
 # -----------------------------------------------------
-# 5. VISUALIZACIÓN DE LA TABLA
+# 5. RESUMEN POR CATEGORÍA (selectores en sidebar)
 # -----------------------------------------------------
-st.subheader(f"Datos seleccionados")
-st.caption(f"{len(df_filtrado)} filas de {len(datos_df)} totales")
+st.sidebar.header("📈 Resumen por categoría")
 
-if columnas_seleccionadas:
-    # Construir configuración de columnas dinámicamente
-    column_config = {}
-    
-    for col in columnas_seleccionadas:
-        if col in ["FEC_INI", "FEC_FIN"]:
-            column_config[col] = st.column_config.DateColumn(format="DD/MM/YYYY")
-        elif col != "year" and pd.api.types.is_numeric_dtype(df_filtrado[col]):
-            column_config[col] = st.column_config.NumberColumn(format="%,.2f €")
-            #column_config[col] = st.column_config.NumberColumn(format="euro")            # columna equivalente a la anterior en Streamlite
-    
-    st.dataframe(
-        df_filtrado[columnas_seleccionadas],
-        use_container_width=True,
-        column_config=column_config,
-)
-else:
-    st.warning("Selecciona al menos una columna para mostrar la tabla.")
-
-# -----------------------------------------------------
-# 6. DESCARGA DEL RESULTADO FILTRADO
-# -----------------------------------------------------
-csv_export = df_filtrado[columnas_seleccionadas].to_csv(index=False).encode("utf-8")
-st.download_button(
-    "⬇️ Descargar CSV filtrado",
-    data=csv_export,
-    file_name=f"datos_FEDA_PAC_filtrados",
-    mime="text/csv",
-)
-
-# -----------------------------------------------------
-# 7. RESUMEN POR CATEGORÍA
-# -----------------------------------------------------
-st.subheader("📈 Resumen por categoría")
-
-COLUMNAS_ESTADISTICO = ["FEC_INI", "FEC_FIN", "FEAGA", "FEADER",
-                         "IMPORTECOFIN", "FEADER_COFIN", "IMPORTE_EUROS"]
 COLUMNAS_AGRUPACION = ["BENEFICIARIO", "GRUPO_EMPRESA", "PROVINCIA",
                         "MUNICIPIO", "MEDIDA", "OBJETIVO_ESP", "year"]
+COLUMNAS_ESTADISTICO = ["FEC_INI", "FEC_FIN", "FEAGA", "FEADER",
+                         "IMPORTECOFIN", "FEADER_COFIN", "IMPORTE_EUROS"]
 
 ESTADISTICOS = {
     "Suma": "sum",
@@ -172,69 +134,95 @@ ESTADISTICOS = {
     "Mínimo": "min",
 }
 
-col_a, col_b = st.columns(2)
-with col_a:
-    col_agrupacion = st.selectbox(
-        "Agrupar por columna",
-        options=[c for c in COLUMNAS_AGRUPACION if c in df_filtrado.columns],
-    )
-with col_b:
-    estadistico_label = st.selectbox("Estadístico a aplicar", options=list(ESTADISTICOS.keys()))
+opciones_agrupacion = ["(Ninguno)"] + [c for c in COLUMNAS_AGRUPACION if c in df_filtrado.columns]
+col_agrupacion = st.sidebar.selectbox("Agrupar por columna", options=opciones_agrupacion)
 
-estadistico = ESTADISTICOS[estadistico_label]
+if col_agrupacion != "(Ninguno)":
+    estadistico_label = st.sidebar.selectbox("Estadístico a aplicar", options=list(ESTADISTICOS.keys()))
+    estadistico = ESTADISTICOS[estadistico_label]
 
-# Columnas sobre las que se aplica el estadístico, presentes en el df filtrado
-cols_estad_presentes = [c for c in COLUMNAS_ESTADISTICO if c in df_filtrado.columns]
+# -----------------------------------------------------
+# 6. VISUALIZACIÓN DE LA TABLA (filtrada o resumida)
+# -----------------------------------------------------
+if col_agrupacion != "(Ninguno)":
 
-# Columnas "informativas" (el resto): se muestra el valor si es único, si no, en blanco
-columnas_resto = [
-    c for c in df_filtrado.columns
-    if c not in cols_estad_presentes and c != col_agrupacion
-]
+    cols_estad_presentes = [c for c in COLUMNAS_ESTADISTICO if c in df_filtrado.columns]
+    columnas_resto = [
+        c for c in df_filtrado.columns
+        if c not in cols_estad_presentes and c != col_agrupacion
+    ]
 
-
-def aplicar_estadistico(serie, stat):
-    """Aplica el estadístico, gestionando el caso de columnas de fecha con 'sum'."""
-    if pd.api.types.is_datetime64_any_dtype(serie):
-        if stat == "sum":
-            return pd.NaT
+    def aplicar_estadistico(serie, stat):
+        if pd.api.types.is_datetime64_any_dtype(serie):
+            if stat == "sum":
+                return pd.NaT
+            return getattr(serie, stat)()
         return getattr(serie, stat)()
-    return getattr(serie, stat)()
 
+    def valor_unico_o_vacio(serie):
+        valores = serie.dropna().unique()
+        return valores[0] if len(valores) == 1 else None
 
-def valor_unico_o_vacio(serie):
-    """Devuelve el valor si es único en el grupo; si no, None (celda en blanco)."""
-    valores = serie.dropna().unique()
-    return valores[0] if len(valores) == 1 else None
+    if estadistico == "sum" and any(
+        pd.api.types.is_datetime64_any_dtype(df_filtrado[c]) for c in cols_estad_presentes
+    ):
+        st.info("La 'Suma' no aplica a columnas de fecha (FEC_INI, FEC_FIN); esas celdas quedarán en blanco.")
 
+    agg_dict = {}
+    for col in cols_estad_presentes:
+        agg_dict[col] = lambda s, stat=estadistico: aplicar_estadistico(s, stat)
+    for col in columnas_resto:
+        agg_dict[col] = valor_unico_o_vacio
 
-if estadistico == "sum" and any(
-    pd.api.types.is_datetime64_any_dtype(df_filtrado[c]) for c in cols_estad_presentes
-):
-    st.info("La 'Suma' no aplica a columnas de fecha (FEC_INI, FEC_FIN); esas celdas quedarán en blanco.")
+    grupos = df_filtrado.groupby(col_agrupacion, dropna=False)
+    df_mostrar = grupos.agg(agg_dict)
+    df_mostrar["Nº registros"] = grupos.size()
+    df_mostrar = df_mostrar.reset_index()
 
-agg_dict = {}
-for col in cols_estad_presentes:
-    agg_dict[col] = lambda s, stat=estadistico: aplicar_estadistico(s, stat)
-for col in columnas_resto:
-    agg_dict[col] = valor_unico_o_vacio
+    orden_columnas = [col_agrupacion, "Nº registros"] + [c for c in df_filtrado.columns if c != col_agrupacion]
+    df_mostrar = df_mostrar[orden_columnas]
 
-grupos = df_filtrado.groupby(col_agrupacion, dropna=False)
-df_resumen = grupos.agg(agg_dict)
-df_resumen["Nº registros"] = grupos.size()
-df_resumen = df_resumen.reset_index()
+    # Respetar la selección de columnas del usuario; el grupo y el conteo siempre se muestran
+    columnas_a_mostrar = [
+        c for c in orden_columnas
+        if c in columnas_seleccionadas or c in [col_agrupacion, "Nº registros"]
+    ]
 
-# Reordenar columnas: igual que la tabla original + Nº registros al final
-orden_columnas = [col_agrupacion] + ["Nº registros"] + [c for c in df_filtrado.columns if c != col_agrupacion]
-df_resumen = df_resumen[orden_columnas]
+    st.subheader("📈 Resumen por categoría")
+    st.caption(
+        f"Agrupado por **{col_agrupacion}** · Estadístico: **{estadistico_label}** · "
+        f"{len(df_mostrar)} grupos ({len(df_filtrado)} filas de origen)"
+    )
 
-# Formato de columnas (igual criterio que la tabla principal)
-column_config_resumen = {"Nº registros": st.column_config.NumberColumn(format="%d")}
-for col in orden_columnas:
-    if col in ["FEC_INI", "FEC_FIN"]:
-        column_config_resumen[col] = st.column_config.DateColumn(format="DD/MM/YYYY")
-    elif col != "year" and col in cols_estad_presentes:
-        column_config_resumen[col] = st.column_config.NumberColumn(format="euro")
+else:
+    df_mostrar = df_filtrado
+    columnas_a_mostrar = columnas_seleccionadas
 
-st.caption(f"Agrupado por **{col_agrupacion}** · Estadístico: **{estadistico_label}**")
-st.dataframe(df_resumen, use_container_width=True, column_config=column_config_resumen)
+    st.subheader("Datos seleccionados")
+    st.caption(f"{len(df_filtrado)} filas de {len(datos_df)} totales")
+
+if columnas_a_mostrar:
+    column_config = {}
+    for col in columnas_a_mostrar:
+        if col == "Nº registros":
+            column_config[col] = st.column_config.NumberColumn(format="%d")
+        elif col in ["FEC_INI", "FEC_FIN"]:
+            column_config[col] = st.column_config.DateColumn(format="DD/MM/YYYY")
+        elif col != "year" and pd.api.types.is_numeric_dtype(df_mostrar[col]):
+            column_config[col] = st.column_config.NumberColumn(format="euro")
+
+    st.dataframe(df_mostrar[columnas_a_mostrar], use_container_width=True, column_config=column_config)
+else:
+    st.warning("Selecciona al menos una columna para mostrar la tabla.")
+
+# -----------------------------------------------------
+# 7. DESCARGA DEL RESULTADO MOSTRADO
+# -----------------------------------------------------
+if columnas_a_mostrar:
+    csv_export = df_mostrar[columnas_a_mostrar].to_csv(index=False).encode("utf-8")
+    st.download_button(
+        "⬇️ Descargar CSV de la tabla mostrada",
+        data=csv_export,
+        file_name="datos_FEDA_PAC_filtrados.csv",
+        mime="text/csv",
+    )
