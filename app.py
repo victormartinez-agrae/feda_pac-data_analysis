@@ -11,7 +11,10 @@ DATA_DIR = Path("data")
 
 @st.cache_data
 def cargar_csv(nombre_archivo: str) -> pd.DataFrame:
-    return pd.read_csv(DATA_DIR / nombre_archivo)
+    return pd.read_csv(DATA_DIR / nombre_archivo, sep=';',
+                       index_col=False,
+                       encoding='latin1',
+                       encoding_errors='backslashreplace')
 
 
 # -----------------------------------------------------
