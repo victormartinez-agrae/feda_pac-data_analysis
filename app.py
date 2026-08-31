@@ -7,57 +7,37 @@ st.set_page_config(page_title="Explorador de Datos", layout="wide")
 # -----------------------------------------------------
 # 1. CONFIGURACIÓN: rutas a los CSV
 # -----------------------------------------------------
-# Opción A (recomendada): leer los CSV directamente del repo
-# clonado por Streamlit Cloud (ruta relativa local).
 DATA_DIR = Path("data")
-
-# Opción B: si prefieres leerlos vía URL raw de GitHub
-# (útil si el CSV está en otro repo o quieres evitar
-# depender de la copia local del deploy)
-GITHUB_RAW_BASE = "https://raw.githubusercontent.com/TU_USUARIO/TU_REPO/main/data"
-
-USE_GITHUB_URL = False  # cambia a True si quieres usar la Opción B
-
-
-@st.cache_data
-def listar_csvs_locales(directorio: Path):
-    return sorted([f.name for f in directorio.glob("*.csv")])
-
 
 @st.cache_data
 def cargar_csv(nombre_archivo: str) -> pd.DataFrame:
-    if USE_GITHUB_URL:
-        url = f"{GITHUB_RAW_BASE}/{nombre_archivo}"
-        return pd.read_csv(url)
-    else:
-        return pd.read_csv(DATA_DIR / nombre_archivo)
+    return pd.read_csv(DATA_DIR / nombre_archivo)
 
 
 # -----------------------------------------------------
-# 2. SELECCIÓN DE ARCHIVO
+# 2. EXTRACCIÓN DE DATOS
 # -----------------------------------------------------
-st.title("📊 Explorador de datos CSV")
+st.title("📊 Extracción de datos CSV")
 
-if USE_GITHUB_URL:
-    # Si usas URLs, define aquí la lista manualmente
-    archivos_disponibles = ["archivo1.csv", "archivo2.csv", "archivo3.csv"]
-else:
-    archivos_disponibles = listar_csvs_locales(DATA_DIR)
+archivos_trabajo = ["Beneficiarios_municipio_ejercicio_financiero_2023.csv",
+                    "Beneficiarios_municipio_ejercicio_financiero_2024.csv",
+                    "Beneficiarios_municipio_ejercicio_financiero_2025.csv"]
 
-if not archivos_disponibles:
-    st.error("No se encontraron archivos CSV en la carpeta 'data/'.")
-    st.stop()
+lista_dfs = []
+for fichero in archivos_trabajo:
+    st.caption(f"Leyendo {fichero}...\n")
+    df_aux = cargar_csv(archivo_seleccionado)
+      df_aux['year']=int(fichero[-8:-4])
+      lista_dfs.append(df_aux)
 
-archivo_seleccionado = st.selectbox("Selecciona un archivo CSV", archivos_disponibles)
-
-df = cargar_csv(archivo_seleccionado)
+datos_df = pd.concat(lista_dfs, ignore_index=True)
 
 # -----------------------------------------------------
 # 3. SELECCIÓN DE COLUMNAS A MOSTRAR
 # -----------------------------------------------------
 st.sidebar.header("⚙️ Opciones de visualización")
 
-columnas_disponibles = list(df.columns)
+columnas_disponibles = list(datos_df.columns)
 columnas_seleccionadas = st.sidebar.multiselect(
     "Columnas a mostrar",
     options=columnas_disponibles,
@@ -69,7 +49,7 @@ columnas_seleccionadas = st.sidebar.multiselect(
 # -----------------------------------------------------
 st.sidebar.header("🔍 Filtros")
 
-df_filtrado = df.copy()
+df_filtrado = datos_df.copy()
 
 columnas_a_filtrar = st.sidebar.multiselect(
     "Elige columnas para filtrar",
@@ -77,7 +57,7 @@ columnas_a_filtrar = st.sidebar.multiselect(
 )
 
 for col in columnas_a_filtrar:
-    serie = df[col]
+    serie = datos_df[col]
 
     if pd.api.types.is_numeric_dtype(serie):
         min_val, max_val = float(serie.min()), float(serie.max())
@@ -129,7 +109,7 @@ if texto_busqueda:
 # 5. VISUALIZACIÓN DE LA TABLA
 # -----------------------------------------------------
 st.subheader(f"Datos: {archivo_seleccionado}")
-st.caption(f"{len(df_filtrado)} filas de {len(df)} totales")
+st.caption(f"{len(df_filtrado)} filas de {len(datos_df)} totales")
 
 if columnas_seleccionadas:
     st.dataframe(df_filtrado[columnas_seleccionadas], use_container_width=True)
