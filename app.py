@@ -20,7 +20,7 @@ def cargar_csv(nombre_archivo: str) -> pd.DataFrame:
 # -----------------------------------------------------
 # 2. EXTRACCIÓN DE DATOS
 # -----------------------------------------------------
-st.title("📊 Extracción de datos CSV")
+st.title("📊 Visualización inicial")
 
 archivos_trabajo = ["Beneficiarios_municipio_ejercicio_financiero_2023.csv",
                     "Beneficiarios_municipio_ejercicio_financiero_2024.csv",
