@@ -1,0 +1,148 @@
+import streamlit as st
+import pandas as pd
+from pathlib import Path
+
+st.set_page_config(page_title="Explorador de Datos", layout="wide")
+
+# -----------------------------------------------------
+# 1. CONFIGURACIÓN: rutas a los CSV
+# -----------------------------------------------------
+# Opción A (recomendada): leer los CSV directamente del repo
+# clonado por Streamlit Cloud (ruta relativa local).
+DATA_DIR = Path("data")
+
+# Opción B: si prefieres leerlos vía URL raw de GitHub
+# (útil si el CSV está en otro repo o quieres evitar
+# depender de la copia local del deploy)
+GITHUB_RAW_BASE = "https://raw.githubusercontent.com/TU_USUARIO/TU_REPO/main/data"
+
+USE_GITHUB_URL = False  # cambia a True si quieres usar la Opción B
+
+
+@st.cache_data
+def listar_csvs_locales(directorio: Path):
+    return sorted([f.name for f in directorio.glob("*.csv")])
+
+
+@st.cache_data
+def cargar_csv(nombre_archivo: str) -> pd.DataFrame:
+    if USE_GITHUB_URL:
+        url = f"{GITHUB_RAW_BASE}/{nombre_archivo}"
+        return pd.read_csv(url)
+    else:
+        return pd.read_csv(DATA_DIR / nombre_archivo)
+
+
+# -----------------------------------------------------
+# 2. SELECCIÓN DE ARCHIVO
+# -----------------------------------------------------
+st.title("📊 Explorador de datos CSV")
+
+if USE_GITHUB_URL:
+    # Si usas URLs, define aquí la lista manualmente
+    archivos_disponibles = ["archivo1.csv", "archivo2.csv", "archivo3.csv"]
+else:
+    archivos_disponibles = listar_csvs_locales(DATA_DIR)
+
+if not archivos_disponibles:
+    st.error("No se encontraron archivos CSV en la carpeta 'data/'.")
+    st.stop()
+
+archivo_seleccionado = st.selectbox("Selecciona un archivo CSV", archivos_disponibles)
+
+df = cargar_csv(archivo_seleccionado)
+
+# -----------------------------------------------------
+# 3. SELECCIÓN DE COLUMNAS A MOSTRAR
+# -----------------------------------------------------
+st.sidebar.header("⚙️ Opciones de visualización")
+
+columnas_disponibles = list(df.columns)
+columnas_seleccionadas = st.sidebar.multiselect(
+    "Columnas a mostrar",
+    options=columnas_disponibles,
+    default=columnas_disponibles,
+)
+
+# -----------------------------------------------------
+# 4. FILTROS DINÁMICOS POR COLUMNA
+# -----------------------------------------------------
+st.sidebar.header("🔍 Filtros")
+
+df_filtrado = df.copy()
+
+columnas_a_filtrar = st.sidebar.multiselect(
+    "Elige columnas para filtrar",
+    options=columnas_disponibles,
+)
+
+for col in columnas_a_filtrar:
+    serie = df[col]
+
+    if pd.api.types.is_numeric_dtype(serie):
+        min_val, max_val = float(serie.min()), float(serie.max())
+        if min_val == max_val:
+            st.sidebar.write(f"**{col}**: valor único ({min_val})")
+            continue
+        rango = st.sidebar.slider(
+            f"Rango para '{col}'",
+            min_value=min_val,
+            max_value=max_val,
+            value=(min_val, max_val),
+        )
+        df_filtrado = df_filtrado[
+            (df_filtrado[col] >= rango[0]) & (df_filtrado[col] <= rango[1])
+        ]
+
+    elif pd.api.types.is_datetime64_any_dtype(serie):
+        min_fecha, max_fecha = serie.min(), serie.max()
+        rango_fechas = st.sidebar.date_input(
+            f"Rango de fechas para '{col}'",
+            value=(min_fecha, max_fecha),
+        )
+        if len(rango_fechas) == 2:
+            inicio, fin = rango_fechas
+            df_filtrado = df_filtrado[
+                (df_filtrado[col] >= pd.to_datetime(inicio))
+                & (df_filtrado[col] <= pd.to_datetime(fin))
+            ]
+
+    else:
+        valores_unicos = sorted(serie.dropna().unique().tolist())
+        seleccionados = st.sidebar.multiselect(
+            f"Valores para '{col}'",
+            options=valores_unicos,
+            default=valores_unicos,
+        )
+        df_filtrado = df_filtrado[df_filtrado[col].isin(seleccionados)]
+
+# También un filtro de texto libre (búsqueda general)
+texto_busqueda = st.sidebar.text_input("Búsqueda libre (en todas las columnas)")
+if texto_busqueda:
+    mask = df_filtrado.apply(
+        lambda row: row.astype(str).str.contains(texto_busqueda, case=False).any(),
+        axis=1,
+    )
+    df_filtrado = df_filtrado[mask]
+
+# -----------------------------------------------------
+# 5. VISUALIZACIÓN DE LA TABLA
+# -----------------------------------------------------
+st.subheader(f"Datos: {archivo_seleccionado}")
+st.caption(f"{len(df_filtrado)} filas de {len(df)} totales")
+
+if columnas_seleccionadas:
+    st.dataframe(df_filtrado[columnas_seleccionadas], use_container_width=True)
+else:
+    st.warning("Selecciona al menos una columna para mostrar la tabla.")
+
+# -----------------------------------------------------
+# 6. DESCARGA DEL RESULTADO FILTRADO
+# -----------------------------------------------------
+csv_export = df_filtrado[columnas_seleccionadas].to_csv(index=False).encode("utf-8")
+st.download_button(
+    "⬇️ Descargar CSV filtrado",
+    data=csv_export,
+    file_name=f"filtrado_{archivo_seleccionado}",
+    mime="text/csv",
+)
