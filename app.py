@@ -155,27 +155,86 @@ st.download_button(
 )
 
 # -----------------------------------------------------
-# 7. ACUMULADOS (AGRUPACIÓN)
+# 7. RESUMEN POR CATEGORÍA
 # -----------------------------------------------------
-st.subheader("📈 Acumulados")
+st.subheader("📈 Resumen por categoría")
 
-columnas_texto = [c for c in df_filtrado.columns if not pd.api.types.is_numeric_dtype(df_filtrado[c])]
-columnas_numericas = [c for c in df_filtrado.columns if pd.api.types.is_numeric_dtype(df_filtrado[c]) and c != "year"]
+COLUMNAS_ESTADISTICO = ["FEC_INI", "FEC_FIN", "FEAGA", "FEADER",
+                         "IMPORTECOFIN", "FEADER_COFIN", "IMPORTE_EUROS"]
+COLUMNAS_AGRUPACION = ["BENEFICIARIO", "GRUPO_EMPRESA", "PROVINCIA",
+                        "MUNICIPIO", "MEDIDA", "OBJETIVO_ESP"]
 
-col_agrupacion = st.selectbox("Agrupar por columna", options=["(ninguna)"] + columnas_texto)
-col_valor = st.selectbox("Columna a acumular", options=columnas_numericas)
+ESTADISTICOS = {
+    "Suma": "sum",
+    "Promedio": "mean",
+    "Mediana": "median",
+    "Máximo": "max",
+    "Mínimo": "min",
+}
 
-if col_agrupacion != "(ninguna)":
-    df_acumulado = (
-        df_filtrado.groupby(col_agrupacion, dropna=False)[col_valor]
-        .sum()
-        .reset_index()
-        .sort_values(col_valor, ascending=False)
+col_a, col_b = st.columns(2)
+with col_a:
+    col_agrupacion = st.selectbox(
+        "Agrupar por columna",
+        options=[c for c in COLUMNAS_AGRUPACION if c in df_filtrado.columns],
     )
-    st.dataframe(
-        df_acumulado,
-        use_container_width=True,
-        column_config={
-            col_valor: st.column_config.NumberColumn(format="€ %.2f")
-        },
-    )
+with col_b:
+    estadistico_label = st.selectbox("Estadístico a aplicar", options=list(ESTADISTICOS.keys()))
+
+estadistico = ESTADISTICOS[estadistico_label]
+
+# Columnas sobre las que se aplica el estadístico, presentes en el df filtrado
+cols_estad_presentes = [c for c in COLUMNAS_ESTADISTICO if c in df_filtrado.columns]
+
+# Columnas "informativas" (el resto): se muestra el valor si es único, si no, en blanco
+columnas_resto = [
+    c for c in df_filtrado.columns
+    if c not in cols_estad_presentes and c != col_agrupacion
+]
+
+
+def aplicar_estadistico(serie, stat):
+    """Aplica el estadístico, gestionando el caso de columnas de fecha con 'sum'."""
+    if pd.api.types.is_datetime64_any_dtype(serie):
+        if stat == "sum":
+            return pd.NaT
+        return getattr(serie, stat)()
+    return getattr(serie, stat)()
+
+
+def valor_unico_o_vacio(serie):
+    """Devuelve el valor si es único en el grupo; si no, None (celda en blanco)."""
+    valores = serie.dropna().unique()
+    return valores[0] if len(valores) == 1 else None
+
+
+if estadistico == "sum" and any(
+    pd.api.types.is_datetime64_any_dtype(df_filtrado[c]) for c in cols_estad_presentes
+):
+    st.info("La 'Suma' no aplica a columnas de fecha (FEC_INI, FEC_FIN); esas celdas quedarán en blanco.")
+
+agg_dict = {}
+for col in cols_estad_presentes:
+    agg_dict[col] = lambda s, stat=estadistico: aplicar_estadistico(s, stat)
+for col in columnas_resto:
+    agg_dict[col] = valor_unico_o_vacio
+
+grupos = df_filtrado.groupby(col_agrupacion, dropna=False)
+df_resumen = grupos.agg(agg_dict)
+df_resumen["Nº registros"] = grupos.size()
+df_resumen = df_resumen.reset_index()
+
+# Reordenar columnas: igual que la tabla original + Nº registros al final
+orden_columnas = [col_agrupacion] + [c for c in df_filtrado.columns if c != col_agrupacion] + ["Nº registros"]
+df_resumen = df_resumen[orden_columnas]
+
+# Formato de columnas (igual criterio que la tabla principal)
+column_config_resumen = {"Nº registros": st.column_config.NumberColumn(format="%d")}
+for col in orden_columnas:
+    if col in ["FEC_INI", "FEC_FIN"]:
+        column_config_resumen[col] = st.column_config.DateColumn(format="DD/MM/YYYY")
+    elif col != "year" and col in cols_estad_presentes:
+        column_config_resumen[col] = st.column_config.NumberColumn(format="euro")
+
+st.caption(f"Agrupado por **{col_agrupacion}** · Estadístico: **{estadistico_label}**")
+st.dataframe(df_resumen, use_container_width=True, column_config=column_config_resumen)
