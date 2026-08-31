@@ -4,9 +4,9 @@ from pathlib import Path
 
 st.set_page_config(page_title="Explorador de Datos", layout="wide")
 
-# -----------------------------------------------------
+# ----------------------------------------------------
 # 1. CONFIGURACIÓN: rutas a los CSV
-# -----------------------------------------------------
+# ----------------------------------------------------
 DATA_DIR = Path("data")
 
 @st.cache_data
@@ -18,22 +18,37 @@ def cargar_csv(nombre_archivo: str) -> pd.DataFrame:
 
 
 # -----------------------------------------------------
-# 2. EXTRACCIÓN DE DATOS
+# 2. PREPARACIÓN DE DATOS
 # -----------------------------------------------------
 st.title("📊 Visualización inicial")
 
+@st.cache_data
+def cargar_datos(archivos: list[str]) -> pd.DataFrame:
+    lista_dfs = []
+    for fichero in archivos:
+        st.caption(f"Leyendo {fichero} ...")
+        df_aux = cargar_csv(fichero)
+        df_aux['year'] = int(fichero[-8:-4])
+        lista_dfs.append(df_aux)
+
+    datos_df = pd.concat(lista_dfs, ignore_index=True)
+
+    col_euros = ['FEAGA', 'FEADER', 'IMPORTECOFIN', 'FEADER_COFIN', 'IMPORTE_EUROS']
+    for col in col_euros:
+        datos_df[col] = datos_df[col].str.replace(',', '.').astype(float)
+
+    col_fecha = ['FEC_INI', 'FEC_FIN']
+    for col in col_fecha:
+        datos_df[col] = pd.to_datetime(datos_df[col], format='%d/%m/%Y')
+
+    return datos_df
+
+# Carga de archivos
 archivos_trabajo = ["Beneficiarios_municipio_ejercicio_financiero_2023.csv",
                     "Beneficiarios_municipio_ejercicio_financiero_2024.csv",
                     "Beneficiarios_municipio_ejercicio_financiero_2025.csv"]
 
-lista_dfs = []
-for fichero in archivos_trabajo:
-    st.caption(f"Leyendo {fichero} ...")
-    df_aux = cargar_csv(fichero)
-    df_aux['year'] = int(fichero[-8:-4])
-    lista_dfs.append(df_aux)
-
-datos_df = pd.concat(lista_dfs, ignore_index=True)
+datos_df = cargar_datos(archivos_trabajo)
 
 # Configuro columnas numéricas como float y columnas tipo fecha como datetime
 col_euros = ['FEAGA', 'FEADER', 'IMPORTECOFIN', 'FEADER_COFIN', 'IMPORTE_EUROS']
