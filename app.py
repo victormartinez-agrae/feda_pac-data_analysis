@@ -20,7 +20,7 @@ def cargar_csv(nombre_archivo: str) -> pd.DataFrame:
 # -----------------------------------------------------
 # 2. PREPARACIÓN DE DATOS
 # -----------------------------------------------------
-st.title("📊 Visualización inicial")
+st.title("📋 Visualización inicial")
 
 @st.cache_data
 def cargar_datos(archivos: list[str]) -> pd.DataFrame:
@@ -235,3 +235,15 @@ if columnas_a_mostrar:
         file_name="datos_FEDA_PAC_filtrados.csv",
         mime="text/csv",
     )
+
+
+# -----------------------------------------------------
+# 8. PRUEBA
+# -----------------------------------------------------
+tab_datos, tab_resumen, tab_graficos = st.tabs(["📋 Datos", "📈 Resumen", "📊 Gráficos"])
+with tab_datos:
+    st.caption("Data")
+with tab_resumen:
+    st.caption("Summary")
+with tab_graficos:
+    st.caption("Graphs")
