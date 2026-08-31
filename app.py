@@ -32,8 +32,8 @@ def cargar_datos(archivos: list[str]) -> pd.DataFrame:
         lista_dfs.append(df_aux)
 
     datos_df = pd.concat(lista_dfs, ignore_index=True)
-    orden_columnas = ["CONVOCATORIA"] + df_filtrado.columns[:-1]
-    df_mostrar = df_mostrar[orden_columnas]
+    orden_columnas = ["CONVOCATORIA"] + datos_df.columns[:-1]
+    datos_df = datos_df[orden_columnas]
 
 
     col_euros = ['FEAGA', 'FEADER', 'IMPORTECOFIN', 'FEADER_COFIN', 'IMPORTE_EUROS']
