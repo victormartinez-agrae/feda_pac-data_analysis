@@ -158,7 +158,8 @@ if columnas_seleccionadas:
         if col in ["FEC_INI", "FEC_FIN"]:
             column_config[col] = st.column_config.DateColumn(format="DD/MM/YYYY")
         elif col != "year" and pd.api.types.is_numeric_dtype(df_filtrado[col]):
-            column_config[col] = st.column_config.NumberColumn(format="%.2f €")
+            column_config[col] = st.column_config.NumberColumn(format="%,.2f €")
+            #column_config[col] = st.column_config.NumberColumn(format="euro")            # columna equivalente a la anterior en Streamlite
     
     st.dataframe(
         df_filtrado[columnas_seleccionadas],
