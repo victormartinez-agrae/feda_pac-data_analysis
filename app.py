@@ -28,10 +28,13 @@ def cargar_datos(archivos: list[str]) -> pd.DataFrame:
     for fichero in archivos:
         st.caption(f"Leyendo {fichero} ...")
         df_aux = cargar_csv(fichero)
-        df_aux['year'] = int(fichero[-8:-4])
+        df_aux['CONVOCATORIA'] = int(fichero[-8:-4])
         lista_dfs.append(df_aux)
 
     datos_df = pd.concat(lista_dfs, ignore_index=True)
+    orden_columnas = ["CONVOCATORIA"] + df_filtrado.columns[:-1]
+    df_mostrar = df_mostrar[orden_columnas]
+
 
     col_euros = ['FEAGA', 'FEADER', 'IMPORTECOFIN', 'FEADER_COFIN', 'IMPORTE_EUROS']
     for col in col_euros:
