@@ -160,7 +160,7 @@ st.download_button(
 st.subheader("📈 Resumen por categoría")
 
 COLUMNAS_ESTADISTICO = ["FEC_INI", "FEC_FIN", "FEAGA", "FEADER",
-                         "IMPORTECOFIN", "FEADER_COFIN", "IMPORTE_EUROS", "year"]
+                         "IMPORTECOFIN", "FEADER_COFIN", "IMPORTE_EUROS"]
 COLUMNAS_AGRUPACION = ["BENEFICIARIO", "GRUPO_EMPRESA", "PROVINCIA",
                         "MUNICIPIO", "MEDIDA", "OBJETIVO_ESP", "year"]
 
