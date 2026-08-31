@@ -213,11 +213,11 @@ else:
 if columnas_a_mostrar:
     column_config = {}
     for col in columnas_a_mostrar:
-        if col == "Nº registros":
+        if (col == "Nº registros") | (col == "CONVOCATORIA"):
             column_config[col] = st.column_config.NumberColumn(format="%d")
         elif col in ["FEC_INI", "FEC_FIN"]:
             column_config[col] = st.column_config.DateColumn(format="DD/MM/YYYY")
-        elif col != "year" and pd.api.types.is_numeric_dtype(df_mostrar[col]):
+        elif col != "CONVOCATORIA" and pd.api.types.is_numeric_dtype(df_mostrar[col]):
             column_config[col] = st.column_config.NumberColumn(format="euro")
 
     st.dataframe(df_mostrar[columnas_a_mostrar], use_container_width=True, column_config=column_config)
