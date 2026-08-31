@@ -28,7 +28,7 @@ archivos_trabajo = ["Beneficiarios_municipio_ejercicio_financiero_2023.csv",
 
 lista_dfs = []
 for fichero in archivos_trabajo:
-    st.caption(f"Leyendo {fichero}...\n")
+    st.caption(f"Leyendo {fichero} ...")
     df_aux = cargar_csv(fichero)
     df_aux['year']=int(fichero[-8:-4])
     lista_dfs.append(df_aux)
@@ -111,7 +111,7 @@ if texto_busqueda:
 # -----------------------------------------------------
 # 5. VISUALIZACIÓN DE LA TABLA
 # -----------------------------------------------------
-st.subheader(f"Datos: {archivo_seleccionado}")
+st.subheader(f"Datos seleccionados")
 st.caption(f"{len(df_filtrado)} filas de {len(datos_df)} totales")
 
 if columnas_seleccionadas:
