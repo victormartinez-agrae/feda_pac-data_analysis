@@ -235,10 +235,10 @@ if columnas_a_mostrar:
         file_name="datos_FEDA_PAC_filtrados.csv",
         mime="text/csv",
     )
-
+    st.caption("\n\n")
 
 # -----------------------------------------------------
-# 8. PRUEBA
+# 8. FUNCIONALIDADES EXTRA
 # -----------------------------------------------------
 tab_datos, tab_resumen, tab_graficos = st.tabs(["📋 Datos", "📈 Resumen", "📊 Gráficos"])
 with tab_datos:
