@@ -160,9 +160,9 @@ st.download_button(
 st.subheader("📈 Resumen por categoría")
 
 COLUMNAS_ESTADISTICO = ["FEC_INI", "FEC_FIN", "FEAGA", "FEADER",
-                         "IMPORTECOFIN", "FEADER_COFIN", "IMPORTE_EUROS"]
+                         "IMPORTECOFIN", "FEADER_COFIN", "IMPORTE_EUROS", "year"]
 COLUMNAS_AGRUPACION = ["BENEFICIARIO", "GRUPO_EMPRESA", "PROVINCIA",
-                        "MUNICIPIO", "MEDIDA", "OBJETIVO_ESP"]
+                        "MUNICIPIO", "MEDIDA", "OBJETIVO_ESP", "year"]
 
 ESTADISTICOS = {
     "Suma": "sum",
@@ -225,7 +225,7 @@ df_resumen["Nº registros"] = grupos.size()
 df_resumen = df_resumen.reset_index()
 
 # Reordenar columnas: igual que la tabla original + Nº registros al final
-orden_columnas = [col_agrupacion] + [c for c in df_filtrado.columns if c != col_agrupacion] + ["Nº registros"]
+orden_columnas = [col_agrupacion] + ["Nº registros"] + [c for c in df_filtrado.columns if c != col_agrupacion]
 df_resumen = df_resumen[orden_columnas]
 
 # Formato de columnas (igual criterio que la tabla principal)
