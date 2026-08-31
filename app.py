@@ -39,11 +39,11 @@ datos_df = pd.concat(lista_dfs, ignore_index=True)
 # numéricas (€)
 col_euros = ['FEAGA','FEADER','IMPORTECOFIN','FEADER_COFIN','IMPORTE_EUROS']
 for col in col_euros:
-  datos_pac[col] = datos_pac[col].str.replace(',','.').astype(float)
+  datos_df[col] = datos_df[col].str.replace(',','.').astype(float)
 # fechas
 col_fecha = ['FEC_INI','FEC_FIN']
 for col in col_fecha:
-  datos_pac[col] = pd.to_datetime(datos_pac[col], format='%d/%m/%Y')
+  datos_df[col] = pd.to_datetime(datos_df[col], format='%d/%m/%Y')
 
 # -----------------------------------------------------
 # 3. SELECCIÓN DE COLUMNAS A MOSTRAR
