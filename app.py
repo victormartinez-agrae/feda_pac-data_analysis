@@ -27,8 +27,8 @@ lista_dfs = []
 for fichero in archivos_trabajo:
     st.caption(f"Leyendo {fichero}...\n")
     df_aux = cargar_csv(archivo_seleccionado)
-      df_aux['year']=int(fichero[-8:-4])
-      lista_dfs.append(df_aux)
+    df_aux['year']=int(fichero[-8:-4])
+    lista_dfs.append(df_aux)
 
 datos_df = pd.concat(lista_dfs, ignore_index=True)
 
