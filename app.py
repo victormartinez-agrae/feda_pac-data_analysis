@@ -126,6 +126,6 @@ csv_export = df_filtrado[columnas_seleccionadas].to_csv(index=False).encode("utf
 st.download_button(
     "⬇️ Descargar CSV filtrado",
     data=csv_export,
-    file_name=f"filtrado_{archivo_seleccionado}",
+    file_name=f"datos_FEDA_PAC_filtrados",
     mime="text/csv",
 )
