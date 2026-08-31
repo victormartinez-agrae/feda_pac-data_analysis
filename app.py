@@ -207,7 +207,7 @@ else:
     df_mostrar = df_filtrado
     columnas_a_mostrar = columnas_seleccionadas
 
-    st.subheader("Datos seleccionados")
+    st.subheader("Datos tras aplicar opciones de visualización, filtros y resúmenes")
     st.caption(f"{len(df_filtrado)} filas de {len(datos_df)} totales")
 
 if columnas_a_mostrar:
