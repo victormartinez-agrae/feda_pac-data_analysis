@@ -35,6 +35,16 @@ def cargar_datos(archivos: list[str]) -> pd.DataFrame:
         lista_dfs.append(df_aux)
 
     datos_df = pd.concat(lista_dfs, ignore_index=True)
+    
+    # Elimino espacios innecesarios
+    col_espacios = ['BENEFICIARIO', 'GRUPO_EMPRESA']
+    for col in col_espacios:
+        datos_df[col] = (
+            datos_df[col]
+            .str.strip()                          # elimina espacios al inicio/final
+            .str.replace(r'\s+', ' ', regex=True) # colapsa espacios múltiples internos en uno solo
+        )
+    
     orden_columnas = ["CONVOCATORIA"] + [c for c in datos_df.columns if c != "CONVOCATORIA"]
     datos_df = datos_df[orden_columnas]
 
@@ -249,10 +259,10 @@ if columnas_a_mostrar:
 # -----------------------------------------------------
 # 8. FUNCIONALIDADES EXTRA
 # -----------------------------------------------------
-tab_datos, tab_resumen, tab_graficos = st.tabs(["📋 Datos", "📈 Resumen", "📊 Gráficos"])
+tab_datos, tab_resumen, tab_graficos = st.tabs(["👶 Jóvenes agricultores", "📈 OPCIÓN B", "📊 OPCIÓN C"])
 with tab_datos:
     st.caption("Data")
 with tab_resumen:
-    st.caption("Summary")
+    st.write("ToDo")
 with tab_graficos:
-    st.caption("Graphs")
+    st.write("ToDo")
