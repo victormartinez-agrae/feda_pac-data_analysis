@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 from pathlib import Path
-import chardet
 
 st.set_page_config(page_title="Explorador de Datos", layout="wide")
 
@@ -12,9 +11,6 @@ DATA_DIR = Path("data")
 
 @st.cache_data
 def cargar_csv(nombre_archivo: str) -> pd.DataFrame:
-    with open(DATA_DIR / nombre_archivo, 'rb') as f:
-        resultado = chardet.detect(f.read(10000))  # Lee los primeros bytes
-        st.caption(resultado)
     return pd.read_csv(DATA_DIR / nombre_archivo, sep=';',
                        index_col=False,
                        #encoding='utf-8',
