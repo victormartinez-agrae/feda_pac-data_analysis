@@ -13,7 +13,8 @@ DATA_DIR = Path("data")
 def cargar_csv(nombre_archivo: str) -> pd.DataFrame:
     return pd.read_csv(DATA_DIR / nombre_archivo, sep=';',
                        index_col=False,
-                       encoding='utf-8',
+                       #encoding='utf-8',
+                       encoding='latin-1',
                        encoding_errors='backslashreplace')
 
 
@@ -50,11 +51,9 @@ def cargar_datos(archivos: list[str]) -> pd.DataFrame:
 archivos_trabajo = ["TOP170k-Beneficiarios_municipio_ejercicio_financiero_2023.csv",
                     "TOP170k-Beneficiarios_municipio_ejercicio_financiero_2024.csv",
                     "TOP170k-Beneficiarios_municipio_ejercicio_financiero_2025.csv"]
-'''
-archivos_trabajo = ["Beneficiarios_municipio_ejercicio_financiero_2023.csv",
-                    "Beneficiarios_municipio_ejercicio_financiero_2024.csv",
-                    "Beneficiarios_municipio_ejercicio_financiero_2025.csv"]
-'''
+#archivos_trabajo = ["Beneficiarios_municipio_ejercicio_financiero_2023.csv",
+#                   "Beneficiarios_municipio_ejercicio_financiero_2024.csv",
+#                   "Beneficiarios_municipio_ejercicio_financiero_2025.csv"]
 
 datos_df = cargar_datos(archivos_trabajo)
 
