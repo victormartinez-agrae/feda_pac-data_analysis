@@ -49,7 +49,7 @@ def cargar_datos(archivos: list[str]) -> pd.DataFrame:
 
 # Carga de archivos
 archivos_trabajo = ["TOP170k-Beneficiarios_municipio_ejercicio_financiero_2023.csv",
-#                    "TOP170k-Beneficiarios_municipio_ejercicio_financiero_2024.csv",
+                    "TOP170k-Beneficiarios_municipio_ejercicio_financiero_2024.csv",
                     "TOP170k-Beneficiarios_municipio_ejercicio_financiero_2025.csv"]
 #archivos_trabajo = ["Beneficiarios_municipio_ejercicio_financiero_2023.csv",
 #                   "Beneficiarios_municipio_ejercicio_financiero_2024.csv",
