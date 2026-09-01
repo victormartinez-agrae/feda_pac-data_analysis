@@ -280,7 +280,7 @@ with tab_cruce:
     ben_b = set(df_mostrar.loc[
         (df_mostrar["CONVOCATORIA"] == conv_b) & (df_mostrar["MEDIDA"] == medida_b), "BENEFICIARIO"
     ])
-    resultado = df_mostrar & df_mostrar
+    resultado = ben_a & ben_b
 
     st.caption(f"{len(resultado)} beneficiarios cumplen ambas condiciones")
     if resultado:
