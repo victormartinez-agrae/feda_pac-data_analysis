@@ -58,9 +58,7 @@ archivos_trabajo = ["TOP170k-Beneficiarios_municipio_ejercicio_financiero_2023.c
 #                   "Beneficiarios_municipio_ejercicio_financiero_2025.csv"]
 
 datos_df = cargar_datos(archivos_trabajo)
-st.write("Columnas por fichero:")
-for fichero in archivos_trabajo:
-    st.write(fichero, list(cargar_csv(fichero).columns))
+
 
 # -----------------------------------------------------
 # 3. SELECCIÓN DE COLUMNAS A MOSTRAR
