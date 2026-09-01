@@ -26,6 +26,7 @@ def cargar_csv(nombre_archivo: str) -> pd.DataFrame:
     st.caption(f"Columna: {col_problematica}")
     st.caption(df[col_problematica].apply(type).value_counts())  # qué tipos hay mezclados
     st.caption(df[col_problematica].unique()[:30])  # muestra de valores
+    return df
 
 
 # -----------------------------------------------------
