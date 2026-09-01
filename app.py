@@ -135,8 +135,8 @@ if texto_busqueda:
 # -----------------------------------------------------
 st.sidebar.header("📈 Resumen por categoría")
 
-COLUMNAS_AGRUPACION = ["BENEFICIARIO", "GRUPO_EMPRESA", "PROVINCIA",
-                        "MUNICIPIO", "MEDIDA", "OBJETIVO_ESP", "year"]
+COLUMNAS_AGRUPACION = ["CONVOCATORIA", "BENEFICIARIO", "GRUPO_EMPRESA", "PROVINCIA",
+                        "MUNICIPIO", "MEDIDA", "OBJETIVO_ESP"]
 COLUMNAS_ESTADISTICO = ["FEC_INI", "FEC_FIN", "FEAGA", "FEADER",
                          "IMPORTECOFIN", "FEADER_COFIN", "IMPORTE_EUROS"]
 
