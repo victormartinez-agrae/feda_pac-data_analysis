@@ -60,9 +60,9 @@ def cargar_datos(archivos: list[str]) -> pd.DataFrame:
     return datos_df
 
 # Carga de archivos
-archivos_trabajo = ["TOP170k-Beneficiarios_municipio_ejercicio_financiero_2023.csv",
-                    "TOP170k-Beneficiarios_municipio_ejercicio_financiero_2024.csv",
-                    "TOP170k-Beneficiarios_municipio_ejercicio_financiero_2025.csv"]
+archivos_trabajo = ["TOP1000-Beneficiarios_municipio_ejercicio_financiero_2023.csv",
+                    "TOP1000-Beneficiarios_municipio_ejercicio_financiero_2024.csv",
+                    "TOP1000-Beneficiarios_municipio_ejercicio_financiero_2025.csv"]
 #archivos_trabajo = ["Beneficiarios_municipio_ejercicio_financiero_2023.csv",
 #                   "Beneficiarios_municipio_ejercicio_financiero_2024.csv",
 #                   "Beneficiarios_municipio_ejercicio_financiero_2025.csv"]
