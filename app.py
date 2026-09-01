@@ -219,6 +219,8 @@ else:
     st.subheader("Datos tras aplicar opciones de visualización, filtros y resúmenes")
     st.caption(f"{len(df_filtrado)} filas de {len(datos_df)} totales")
 
+columnas_a_mostrar = [c for c in columnas_a_mostrar if c in df_mostrar.columns]
+
 if columnas_a_mostrar:
     column_config = {}
     for col in columnas_a_mostrar:
