@@ -259,9 +259,37 @@ if columnas_a_mostrar:
 # -----------------------------------------------------
 # 8. FUNCIONALIDADES EXTRA
 # -----------------------------------------------------
-tab_datos, tab_resumen, tab_graficos = st.tabs(["👶 Jóvenes agricultores", "📈 OPCIÓN B", "📊 OPCIÓN C"])
-with tab_datos:
-    st.caption("Data")
+tab_cruce, tab_jovenesAg, tab_resumen, tab_graficos = st.tabs(["🔗 Cruce", "👶 Jóvenes agricultores", "📈 OPCIÓN B", "📊 OPCIÓN C"])
+with tab_cruce:
+    st.subheader("🔗 Beneficiarios que cumplen condiciones en dos convocatorias")
+
+    convocatorias_disp = sorted(datos_df["CONVOCATORIA"].unique())
+    medidas_disp = sorted(datos_df["MEDIDA"].dropna().unique())
+
+    col1, col2 = st.columns(2)
+    with col1:
+        conv_a = st.selectbox("Convocatoria A", convocatorias_disp, index=0)
+        medida_a = st.selectbox("Medida en A", medidas_disp, key="medida_a")
+    with col2:
+        conv_b = st.selectbox("Convocatoria B", convocatorias_disp, index=1)
+        medida_b = st.selectbox("Medida en B", medidas_disp, key="medida_b")
+
+    ben_a = set(datos_df.loc[
+        (datos_df["CONVOCATORIA"] == conv_a) & (datos_df["MEDIDA"] == medida_a), "BENEFICIARIO"
+    ])
+    ben_b = set(datos_df.loc[
+        (datos_df["CONVOCATORIA"] == conv_b) & (datos_df["MEDIDA"] == medida_b), "BENEFICIARIO"
+    ])
+    resultado = ben_a & ben_b
+
+    st.caption(f"{len(resultado)} beneficiarios cumplen ambas condiciones")
+    if resultado:
+        st.dataframe(
+            datos_df[datos_df["BENEFICIARIO"].isin(resultado)],
+            use_container_width=True,
+        )
+with tab_jovenesAg:
+    st.write("ToDo")
 with tab_resumen:
     st.write("ToDo")
 with tab_graficos:
