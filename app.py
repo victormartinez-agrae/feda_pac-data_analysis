@@ -11,20 +11,12 @@ DATA_DIR = Path("data")
 
 @st.cache_data
 def cargar_csv(nombre_archivo: str) -> pd.DataFrame:
-    df = pd.read_csv(DATA_DIR / nombre_archivo, sep=';',
-                     index_col=False, encoding='latin-1',
-                     encoding_errors='backslashreplace',
-                     low_memory=False)
-    col_problematica = df.columns[1]
-    st.caption(f"Columna: {col_problematica}")
-    st.caption(df[col_problematica].apply(type).value_counts())  # qué tipos hay mezclados
-    st.caption(df[col_problematica].unique()[:30])  # muestra de valores
-    return df
-    #return pd.read_csv(DATA_DIR / nombre_archivo, sep=';',
-    #                  index_col=False,
-    #                  #encoding='utf-8',
-    #                  encoding='latin-1',
-    #                  encoding_errors='backslashreplace')
+    return pd.read_csv(DATA_DIR / nombre_archivo, sep=';',
+                       index_col=False,
+                       #encoding='utf-8',
+                       encoding='latin-1',
+                       encoding_errors='backslashreplace',
+                       dtype={'GRUPO_EMPRESA': str})       # Esta opción elimina "DtypeWarning: Columns (1) have mixed types"
 
 
 # -----------------------------------------------------
