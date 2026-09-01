@@ -263,8 +263,8 @@ tab_cruce, tab_jovenesAg, tab_resumen, tab_graficos = st.tabs(["🔗 Cruce", "�
 with tab_cruce:
     st.subheader("🔗 Beneficiarios que cumplen condiciones en dos convocatorias")
 
-    convocatorias_disp = sorted(datos_df["CONVOCATORIA"].unique())
-    medidas_disp = sorted(datos_df["MEDIDA"].dropna().unique())
+    convocatorias_disp = sorted(df_mostrar["CONVOCATORIA"].unique())
+    medidas_disp = sorted(df_mostrar["MEDIDA"].dropna().unique())
 
     col1, col2 = st.columns(2)
     with col1:
@@ -274,19 +274,19 @@ with tab_cruce:
         conv_b = st.selectbox("Convocatoria B", convocatorias_disp, index=1)
         medida_b = st.selectbox("Medida en B", medidas_disp, key="medida_b")
 
-    ben_a = set(datos_df.loc[
-        (datos_df["CONVOCATORIA"] == conv_a) & (datos_df["MEDIDA"] == medida_a), "BENEFICIARIO"
+    ben_a = set(df_mostrar.loc[
+        (df_mostrar["CONVOCATORIA"] == conv_a) & (df_mostrar["MEDIDA"] == medida_a), "BENEFICIARIO"
     ])
-    ben_b = set(datos_df.loc[
-        (datos_df["CONVOCATORIA"] == conv_b) & (datos_df["MEDIDA"] == medida_b), "BENEFICIARIO"
+    ben_b = set(df_mostrar.loc[
+        (df_mostrar["CONVOCATORIA"] == conv_b) & (df_mostrar["MEDIDA"] == medida_b), "BENEFICIARIO"
     ])
-    resultado = ben_a & ben_b
+    resultado = df_mostrar & df_mostrar
 
     st.caption(f"{len(resultado)} beneficiarios cumplen ambas condiciones")
     if resultado:
         st.dataframe(
-            datos_df[datos_df["BENEFICIARIO"].isin(resultado)],
-            use_container_width=True,
+            df_mostrar[df_mostrar["BENEFICIARIO"].isin(resultado)],
+            width='stretch',
         )
 with tab_jovenesAg:
     st.write("ToDo")
