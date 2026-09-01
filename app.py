@@ -225,7 +225,7 @@ if columnas_a_mostrar:
         elif col != "CONVOCATORIA" and pd.api.types.is_numeric_dtype(df_mostrar[col]):
             column_config[col] = st.column_config.NumberColumn(format="euro")
 
-    st.dataframe(df_mostrar[columnas_a_mostrar], use_container_width=True, column_config=column_config)
+    st.dataframe(df_mostrar[columnas_a_mostrar], width='stretch', column_config=column_config)
 else:
     st.warning("Selecciona al menos una columna para mostrar la tabla.")
 
