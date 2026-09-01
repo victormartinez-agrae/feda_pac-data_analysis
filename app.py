@@ -29,7 +29,8 @@ def cargar_datos(archivos: list[str]) -> pd.DataFrame:
     for fichero in archivos:
         st.caption(f"Leyendo {fichero} ...")
         df_aux = cargar_csv(fichero)
-        df_aux['CONVOCATORIA'] = int(fichero[-8:-4])
+        #df_aux['CONVOCATORIA'] = int(fichero[-8:-4])
+        df_aux['CONVOCATORIA'] = fichero[-8:-4]    # Comento lo anterior porque no trataremos esta columna como entero
         lista_dfs.append(df_aux)
 
     datos_df = pd.concat(lista_dfs, ignore_index=True)
