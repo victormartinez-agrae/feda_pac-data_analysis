@@ -285,8 +285,19 @@ with tab_visualizacion:
                 column_config[col] = st.column_config.NumberColumn(format="euro")
     
         st.dataframe(df_mostrar[columnas_a_mostrar], width='stretch', column_config=column_config)
+        
+        # Botón de descarga
+        csv_export = df_mostrar[columnas_a_mostrar].to_csv(index=False).encode("utf-8")
+        st.download_button(
+            "⬇️ Descargar CSV de la tabla mostrada",
+            data=csv_export,
+            file_name="datos_FEDA_PAC_filtrados.csv",
+            mime="text/csv",
+            key="descarga_visualizacion",
+        )
     else:
         st.warning("Selecciona al menos una columna para mostrar la tabla.")
+
 
 
 with tab_cruce:
@@ -317,6 +328,14 @@ with tab_cruce:
             df_mostrar[df_mostrar["BENEFICIARIO"].isin(resultado)],
             width='stretch',
         )
+        # Botón de descarga
+        csv_export_cruce = df_cruce.to_csv(index=False).encode("utf-8")
+        st.download_button(
+            "⬇️ Descargar CSV del cruce",
+            data=csv_export_cruce,
+            file_name="datos_FEDA_PAC_cruce.csv",
+            mime="text/csv",
+            key="descarga_cruce",
 with tab_jovenesAg:
     st.write("ToDo")
 
@@ -325,11 +344,5 @@ with tab_jovenesAg:
 # 5. DESCARGA DEL RESULTADO MOSTRADO
 # -----------------------------------------------------
 if columnas_a_mostrar:
-    csv_export = df_mostrar[columnas_a_mostrar].to_csv(index=False).encode("utf-8")
-    st.download_button(
-        "⬇️ Descargar CSV de la tabla mostrada",
-        data=csv_export,
-        file_name="datos_FEDA_PAC_filtrados.csv",
-        mime="text/csv",
     )
     st.caption("\n\n")
