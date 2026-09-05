@@ -101,10 +101,12 @@ st.sidebar.divider()
 st.sidebar.header("⚙️ Opciones de visualización")
 
 columnas_disponibles = list(datos_df.columns)
+# Inicialización explícita del valor por defecto (solo si aún no existe)
+if "columnas_seleccionadas" not in st.session_state:
+    st.session_state["columnas_seleccionadas"] = columnas_disponibles
 columnas_seleccionadas = st.sidebar.multiselect(
     "Columnas a mostrar",
     options=columnas_disponibles,
-    default=columnas_disponibles,
     key="columnas_seleccionadas",
     on_change=reset_filtros_y_resumen,
 )
