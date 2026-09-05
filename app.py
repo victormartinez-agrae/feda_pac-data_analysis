@@ -22,7 +22,7 @@ def cargar_csv(nombre_archivo: str) -> pd.DataFrame:
 # -----------------------------------------------------
 # 2. PREPARACIÓN DE DATOS
 # -----------------------------------------------------
-st.title("📋 Visualización inicial")
+st.title("Inicialización")
 
 @st.cache_data
 def cargar_datos(archivos: list[str]) -> pd.DataFrame:
@@ -71,7 +71,7 @@ datos_df = cargar_datos(archivos_trabajo)
 
 
 # -----------------------------------------------------
-# FUNCIONES DE RESETEO EN CASCADA
+# 3. FUNCIONES DE RESETEO EN CASCADA
 # -----------------------------------------------------
 def reset_filtros_y_resumen():
     st.session_state["columnas_a_filtrar"] = []
@@ -96,8 +96,10 @@ st.sidebar.divider()
 
 
 # -----------------------------------------------------
-# 3. SELECCIÓN DE COLUMNAS A MOSTRAR
+# 3. SIDEBAR
 # -----------------------------------------------------
+
+# 3.1. SELECCIÓN DE COLUMNAS A MOSTRAR
 st.sidebar.header("⚙️ Opciones de visualización")
 
 columnas_disponibles = list(datos_df.columns)
@@ -111,9 +113,7 @@ columnas_seleccionadas = st.sidebar.multiselect(
     on_change=reset_filtros_y_resumen,
 )
 
-# -----------------------------------------------------
-# 4. FILTROS DINÁMICOS POR COLUMNA
-# -----------------------------------------------------
+# 3.2. FILTROS DINÁMICOS POR COLUMNA
 st.sidebar.header("🔍 Filtros")
 
 df_filtrado = datos_df.copy()
@@ -176,9 +176,7 @@ if texto_busqueda:
     )
     df_filtrado = df_filtrado[mask]
 
-# -----------------------------------------------------
-# 5. RESUMEN POR CATEGORÍA (selectores en sidebar)
-# -----------------------------------------------------
+# 3.3. RESUMEN POR CATEGORÍA (selectores en sidebar)
 st.sidebar.header("📈 Resumen por categoría")
 
 COLUMNAS_AGRUPACION = ["CONVOCATORIA", "BENEFICIARIO", "GRUPO_EMPRESA", "PROVINCIA",
@@ -209,99 +207,88 @@ if col_agrupacion != "(Ninguno)":
     )
     estadistico = ESTADISTICOS[estadistico_label]
 
-# -----------------------------------------------------
-# 6. VISUALIZACIÓN DE LA TABLA (filtrada o resumida)
-# -----------------------------------------------------
-if col_agrupacion != "(Ninguno)":
 
-    cols_estad_presentes = [c for c in COLUMNAS_ESTADISTICO if c in df_filtrado.columns]
-    columnas_resto = [
-        c for c in df_filtrado.columns
-        if c not in cols_estad_presentes and c != col_agrupacion
-    ]
+# -----------------------------------------------------
+# 4. FUNCIONALIDADES
+# -----------------------------------------------------
+tab_visualizacion, tab_cruce, tab_jovenesAg = st.tabs(["📋 Visualización", "🔗 Cruce", "👶 Jóvenes agricultores"])
+with tab_visualizacion:
+    st.subheader("📋 Visualización de datos de trabajo")
 
-    def aplicar_estadistico(serie, stat):
-        if pd.api.types.is_datetime64_any_dtype(serie):
-            if stat == "sum":
-                return pd.NaT
+    if col_agrupacion != "(Ninguno)":
+    
+        cols_estad_presentes = [c for c in COLUMNAS_ESTADISTICO if c in df_filtrado.columns]
+        columnas_resto = [
+            c for c in df_filtrado.columns
+            if c not in cols_estad_presentes and c != col_agrupacion
+        ]
+    
+        def aplicar_estadistico(serie, stat):
+            if pd.api.types.is_datetime64_any_dtype(serie):
+                if stat == "sum":
+                    return pd.NaT
+                return getattr(serie, stat)()
             return getattr(serie, stat)()
-        return getattr(serie, stat)()
+    
+        def valor_unico_o_vacio(serie):
+            valores = serie.dropna().unique()
+            return valores[0] if len(valores) == 1 else None
+    
+        if estadistico == "sum" and any(
+            pd.api.types.is_datetime64_any_dtype(df_filtrado[c]) for c in cols_estad_presentes
+        ):
+            st.info("La 'Suma' no aplica a columnas de fecha (FEC_INI, FEC_FIN); esas celdas quedarán en blanco.")
+    
+        agg_dict = {}
+        for col in cols_estad_presentes:
+            agg_dict[col] = lambda s, stat=estadistico: aplicar_estadistico(s, stat)
+        for col in columnas_resto:
+            agg_dict[col] = valor_unico_o_vacio
+    
+        grupos = df_filtrado.groupby(col_agrupacion, dropna=False)
+        df_mostrar = grupos.agg(agg_dict)
+        df_mostrar["Nº registros"] = grupos.size()
+        df_mostrar = df_mostrar.reset_index()
+    
+        orden_columnas = [col_agrupacion, "Nº registros"] + [c for c in df_filtrado.columns if c != col_agrupacion]
+        df_mostrar = df_mostrar[orden_columnas]
+    
+        # Respetar la selección de columnas del usuario; el grupo y el conteo siempre se muestran
+        columnas_a_mostrar = [
+            c for c in orden_columnas
+            if c in columnas_seleccionadas or c in [col_agrupacion, "Nº registros"]
+        ]
+    
+        st.subheader("📈 Resumen por categoría")
+        st.caption(
+            f"Agrupado por **{col_agrupacion}** · Estadístico: **{estadistico_label}** · "
+            f"{len(df_mostrar)} grupos ({len(df_filtrado)} filas de origen)"
+        )
+    
+    else:
+        df_mostrar = df_filtrado
+        columnas_a_mostrar = columnas_seleccionadas
+    
+        st.subheader("Datos tras aplicar opciones de visualización, filtros y resúmenes")
+        st.caption(f"{len(df_filtrado)} filas de {len(datos_df)} totales")
+    
+    columnas_a_mostrar = [c for c in columnas_a_mostrar if c in df_mostrar.columns]
+    
+    if columnas_a_mostrar:
+        column_config = {}
+        for col in columnas_a_mostrar:
+            if (col == "Nº registros") | (col == "CONVOCATORIA"):
+                column_config[col] = st.column_config.NumberColumn(format="%d")
+            elif col in ["FEC_INI", "FEC_FIN"]:
+                column_config[col] = st.column_config.DateColumn(format="DD/MM/YYYY")
+            elif col != "CONVOCATORIA" and pd.api.types.is_numeric_dtype(df_mostrar[col]):
+                column_config[col] = st.column_config.NumberColumn(format="euro")
+    
+        st.dataframe(df_mostrar[columnas_a_mostrar], width='stretch', column_config=column_config)
+    else:
+        st.warning("Selecciona al menos una columna para mostrar la tabla.")
 
-    def valor_unico_o_vacio(serie):
-        valores = serie.dropna().unique()
-        return valores[0] if len(valores) == 1 else None
 
-    if estadistico == "sum" and any(
-        pd.api.types.is_datetime64_any_dtype(df_filtrado[c]) for c in cols_estad_presentes
-    ):
-        st.info("La 'Suma' no aplica a columnas de fecha (FEC_INI, FEC_FIN); esas celdas quedarán en blanco.")
-
-    agg_dict = {}
-    for col in cols_estad_presentes:
-        agg_dict[col] = lambda s, stat=estadistico: aplicar_estadistico(s, stat)
-    for col in columnas_resto:
-        agg_dict[col] = valor_unico_o_vacio
-
-    grupos = df_filtrado.groupby(col_agrupacion, dropna=False)
-    df_mostrar = grupos.agg(agg_dict)
-    df_mostrar["Nº registros"] = grupos.size()
-    df_mostrar = df_mostrar.reset_index()
-
-    orden_columnas = [col_agrupacion, "Nº registros"] + [c for c in df_filtrado.columns if c != col_agrupacion]
-    df_mostrar = df_mostrar[orden_columnas]
-
-    # Respetar la selección de columnas del usuario; el grupo y el conteo siempre se muestran
-    columnas_a_mostrar = [
-        c for c in orden_columnas
-        if c in columnas_seleccionadas or c in [col_agrupacion, "Nº registros"]
-    ]
-
-    st.subheader("📈 Resumen por categoría")
-    st.caption(
-        f"Agrupado por **{col_agrupacion}** · Estadístico: **{estadistico_label}** · "
-        f"{len(df_mostrar)} grupos ({len(df_filtrado)} filas de origen)"
-    )
-
-else:
-    df_mostrar = df_filtrado
-    columnas_a_mostrar = columnas_seleccionadas
-
-    st.subheader("Datos tras aplicar opciones de visualización, filtros y resúmenes")
-    st.caption(f"{len(df_filtrado)} filas de {len(datos_df)} totales")
-
-columnas_a_mostrar = [c for c in columnas_a_mostrar if c in df_mostrar.columns]
-
-if columnas_a_mostrar:
-    column_config = {}
-    for col in columnas_a_mostrar:
-        if (col == "Nº registros") | (col == "CONVOCATORIA"):
-            column_config[col] = st.column_config.NumberColumn(format="%d")
-        elif col in ["FEC_INI", "FEC_FIN"]:
-            column_config[col] = st.column_config.DateColumn(format="DD/MM/YYYY")
-        elif col != "CONVOCATORIA" and pd.api.types.is_numeric_dtype(df_mostrar[col]):
-            column_config[col] = st.column_config.NumberColumn(format="euro")
-
-    st.dataframe(df_mostrar[columnas_a_mostrar], width='stretch', column_config=column_config)
-else:
-    st.warning("Selecciona al menos una columna para mostrar la tabla.")
-
-# -----------------------------------------------------
-# 7. DESCARGA DEL RESULTADO MOSTRADO
-# -----------------------------------------------------
-if columnas_a_mostrar:
-    csv_export = df_mostrar[columnas_a_mostrar].to_csv(index=False).encode("utf-8")
-    st.download_button(
-        "⬇️ Descargar CSV de la tabla mostrada",
-        data=csv_export,
-        file_name="datos_FEDA_PAC_filtrados.csv",
-        mime="text/csv",
-    )
-    st.caption("\n\n")
-
-# -----------------------------------------------------
-# 8. FUNCIONALIDADES EXTRA
-# -----------------------------------------------------
-tab_cruce, tab_jovenesAg, tab_resumen, tab_graficos = st.tabs(["🔗 Cruce", "👶 Jóvenes agricultores", "📈 OPCIÓN B", "📊 OPCIÓN C"])
 with tab_cruce:
     st.subheader("🔗 Beneficiarios que cumplen condiciones en dos convocatorias")
 
@@ -332,7 +319,17 @@ with tab_cruce:
         )
 with tab_jovenesAg:
     st.write("ToDo")
-with tab_resumen:
-    st.write("ToDo")
-with tab_graficos:
-    st.write("ToDo")
+
+
+# -----------------------------------------------------
+# 5. DESCARGA DEL RESULTADO MOSTRADO
+# -----------------------------------------------------
+if columnas_a_mostrar:
+    csv_export = df_mostrar[columnas_a_mostrar].to_csv(index=False).encode("utf-8")
+    st.download_button(
+        "⬇️ Descargar CSV de la tabla mostrada",
+        data=csv_export,
+        file_name="datos_FEDA_PAC_filtrados.csv",
+        mime="text/csv",
+    )
+    st.caption("\n\n")
