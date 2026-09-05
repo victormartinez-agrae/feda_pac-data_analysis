@@ -71,6 +71,31 @@ datos_df = cargar_datos(archivos_trabajo)
 
 
 # -----------------------------------------------------
+# FUNCIONES DE RESETEO EN CASCADA
+# -----------------------------------------------------
+def reset_filtros_y_resumen():
+    st.session_state["columnas_a_filtrar"] = []
+    st.session_state["col_agrupacion"] = "(Ninguno)"
+
+def reset_resumen():
+    st.session_state["col_agrupacion"] = "(Ninguno)"
+
+def reset_todo():
+    st.session_state["columnas_seleccionadas"] = columnas_disponibles
+    st.session_state["columnas_a_filtrar"] = []
+    st.session_state["texto_busqueda"] = ""
+    st.session_state["col_agrupacion"] = "(Ninguno)"
+    # Los selectbox de la pestaña Cruce solo existen en session_state
+    # si esa pestaña ya se ha renderizado al menos una vez
+    for key_cruce in ["conv_a", "conv_b", "medida_a", "medida_b"]:
+        if key_cruce in st.session_state:
+            del st.session_state[key_cruce]
+
+st.sidebar.button("🔄 Restablecer todo", on_click=reset_todo)
+st.sidebar.divider()
+
+
+# -----------------------------------------------------
 # 3. SELECCIÓN DE COLUMNAS A MOSTRAR
 # -----------------------------------------------------
 st.sidebar.header("⚙️ Opciones de visualización")
@@ -80,6 +105,8 @@ columnas_seleccionadas = st.sidebar.multiselect(
     "Columnas a mostrar",
     options=columnas_disponibles,
     default=columnas_disponibles,
+    key="columnas_seleccionadas",
+    on_change=reset_filtros_y_resumen,
 )
 
 # -----------------------------------------------------
@@ -92,6 +119,8 @@ df_filtrado = datos_df.copy()
 columnas_a_filtrar = st.sidebar.multiselect(
     "Elige columnas para filtrar",
     options=columnas_disponibles,
+    key="columnas_a_filtrar",
+    on_change=reset_resumen,
 )
 
 for col in columnas_a_filtrar:
@@ -134,7 +163,10 @@ for col in columnas_a_filtrar:
         )
         df_filtrado = df_filtrado[df_filtrado[col].isin(seleccionados)]
 
-texto_busqueda = st.sidebar.text_input("Búsqueda libre (en todas las columnas)")
+texto_busqueda = st.sidebar.text_input(
+    "Búsqueda libre (en todas las columnas)",
+    ke="texto_busqueda"
+)
 if texto_busqueda:
     mask = df_filtrado.apply(
         lambda row: row.astype(str).str.contains(texto_busqueda, case=False).any(),
@@ -161,10 +193,18 @@ ESTADISTICOS = {
 }
 
 opciones_agrupacion = ["(Ninguno)"] + [c for c in COLUMNAS_AGRUPACION if c in df_filtrado.columns]
-col_agrupacion = st.sidebar.selectbox("Agrupar por columna", options=opciones_agrupacion)
+col_agrupacion = st.sidebar.selectbox(
+    "Agrupar por columna", 
+    options=opciones_agrupacion,
+    key="col_agrupacion",
+)
 
 if col_agrupacion != "(Ninguno)":
-    estadistico_label = st.sidebar.selectbox("Estadístico a aplicar", options=list(ESTADISTICOS.keys()))
+    estadistico_label = st.sidebar.selectbox(
+        "Estadístico a aplicar",
+        options=list(ESTADISTICOS.keys()),
+        key="estadistico_label"
+    )
     estadistico = ESTADISTICOS[estadistico_label]
 
 # -----------------------------------------------------
@@ -268,10 +308,10 @@ with tab_cruce:
 
     col1, col2 = st.columns(2)
     with col1:
-        conv_a = st.selectbox("Convocatoria A", convocatorias_disp, index=0)
+        conv_a = st.selectbox("Convocatoria A", convocatorias_disp, index=0, key="conv_a")
         medida_a = st.selectbox("Medida en A", medidas_disp, key="medida_a")
     with col2:
-        conv_b = st.selectbox("Convocatoria B", convocatorias_disp, index=1)
+        conv_b = st.selectbox("Convocatoria B", convocatorias_disp, index=1, key="conv_b")
         medida_b = st.selectbox("Medida en B", medidas_disp, key="medida_b")
 
     ben_a = set(df_mostrar.loc[
