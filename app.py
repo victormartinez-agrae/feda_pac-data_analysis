@@ -165,7 +165,7 @@ for col in columnas_a_filtrar:
 
 texto_busqueda = st.sidebar.text_input(
     "Búsqueda libre (en todas las columnas)",
-    ke="texto_busqueda"
+    key="texto_busqueda"
 )
 if texto_busqueda:
     mask = df_filtrado.apply(
