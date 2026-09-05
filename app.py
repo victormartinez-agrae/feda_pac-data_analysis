@@ -13,8 +13,8 @@ DATA_DIR = Path("data")
 def cargar_csv(nombre_archivo: str) -> pd.DataFrame:
     return pd.read_csv(DATA_DIR / nombre_archivo, sep=';',
                        index_col=False,
-                       #encoding='utf-8',
-                       encoding='latin-1',
+                       encoding='utf-8',
+                       #encoding='latin-1',
                        encoding_errors='backslashreplace',
                        dtype={'GRUPO_EMPRESA': str})       # Esta opción elimina "DtypeWarning: Columns (1) have mixed types"
 
