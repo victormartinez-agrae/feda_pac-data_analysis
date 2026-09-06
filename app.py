@@ -336,13 +336,6 @@ with tab_cruce:
             file_name="datos_FEDA_PAC_cruce.csv",
             mime="text/csv",
             key="descarga_cruce",
+        )
 with tab_jovenesAg:
     st.write("ToDo")
-
-
-# -----------------------------------------------------
-# 5. DESCARGA DEL RESULTADO MOSTRADO
-# -----------------------------------------------------
-if columnas_a_mostrar:
-    )
-    st.caption("\n\n")
