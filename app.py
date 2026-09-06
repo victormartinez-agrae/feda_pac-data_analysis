@@ -303,15 +303,15 @@ with tab_visualizacion:
 with tab_cruce:
     st.subheader("🔗 Beneficiarios que cumplen condiciones en dos convocatorias")
 
-    convocatorias_disp = sorted(df_mostrar["CONVOCATORIA"].dropna().unique())
-    medidas_disp = sorted(df_mostrar["MEDIDA"].dropna().unique())
+    convocatorias_disp = sorted(df_filtrado["CONVOCATORIA"].dropna().unique())
+    medidas_disp = sorted(df_filtrado["MEDIDA"].dropna().unique())
 
     col1, col2 = st.columns(2)
     with col1:
         conv_a = st.selectbox("Convocatoria A", convocatorias_disp, index=0, key="conv_a")
         medida_a = st.selectbox("Medida en A", medidas_disp, key="medida_a")
     with col2:
-        conv_b = st.selectbox("Convocatoria B", convocatorias_disp, index=1, key="conv_b")
+        conv_b = st.selectbox("Convocatoria B", convocatorias_disp, index=0, key="conv_b")
         medida_b = st.selectbox("Medida en B", medidas_disp, key="medida_b")
 
     ben_a = set(df_filtrado.loc[
@@ -324,10 +324,8 @@ with tab_cruce:
 
     st.caption(f"{len(resultado)} beneficiarios cumplen ambas condiciones")
     if resultado:
-        st.dataframe(
-            df_filtrado[df_filtrado["BENEFICIARIO"].isin(resultado)],
-            width='stretch',
-        )
+        df_cruce = df_filtrado[df_filtrado["BENEFICIARIO"].isin(resultado)]
+        st.dataframe(df_cruce, width='stretch')
         # Botón de descarga
         csv_export_cruce = df_cruce.to_csv(index=False).encode("utf-8")
         st.download_button(
