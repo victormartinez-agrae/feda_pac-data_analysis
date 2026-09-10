@@ -415,11 +415,10 @@ with tab_prov_muni:
         )
 
         # Municipios disponibles para la provincia seleccionada
-        #municipios_disp = sorted(
-        #    datos_df.loc[datos_df["PROVINCIA"] == provincia_sel, "MUNICIPIO"].dropna().unique()
-        #)
-        municipios_disp = datos_df.loc[datos_df["PROVINCIA"] == provincia_sel, "MUNICIPIO"].dropna().unique()
-        municipios_disp = sorted(municipios_disp)
+        municipios_disp = sorted(
+            datos_df.loc[datos_df["PROVINCIA"] == provincia_sel, "MUNICIPIO"].dropna().unique(),
+            key=lambda s: s.split(" - ", 1)[-1] if " - " in s else s,
+        )
 
         # La key incluye la provincia: al cambiar de provincia, el widget se
         # reinicia automáticamente al primer municipio, sin arrastrar un
