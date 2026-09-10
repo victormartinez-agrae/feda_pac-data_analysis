@@ -259,11 +259,23 @@ def obtener_cultivos_municipio(nombre_municipio: str, tipo_cultivo: str) -> pd.D
 
     df_cultivos = pd.DataFrame(registros)
 
-    columnas_interes = ["ano", "grupo_de_cultivo", "cultivo",
-                        "superficie_secano_ha", "superficie_regadio_ha", "superficie_total_ha"]
+    if tipo_cultivo=="Superficies de cultivos municipales":
+        columnas_interes = ["ano", "grupo_de_cultivo", "cultivo",
+                            "superficie_secano", "superficie_regadio"]
+    else:
+        columnas_interes = ["ano", "grupo_de_cultivo", "cultivo",
+                            "superficie_secano_ha", "superficie_regadio_ha"]
     columnas_presentes = [c for c in columnas_interes if c in df_cultivos.columns]
-
-    return df_cultivos[columnas_presentes].sort_values("ano", ascending=False)
+    df_return = (
+        df_cultivos[columnas_presentes]
+        .sort_values("ano", ascending=False)
+        .rename(columns={
+            "superficie_secano": "superficie_secano",
+            "superficie_regadio": "superficie_regadio"
+        })
+    )
+    df_return["superficie_total_ha"] = df_return["superficie_secano_ha"] +df_return["superficie_regadio_ha"] 
+    return df_return
 
 
 
