@@ -335,7 +335,7 @@ with tab_cruce:
             mime="text/csv",
             key="descarga_cruce",
         )
-with tab_provincia_municipio:
+with tab_prov_muni:
     st.subheader("📍 Consulta por provincia y municipio")
 
     PROVINCIAS_PERMITIDAS = ["León", "Zamora", "Salamanca", "Valladolid",
