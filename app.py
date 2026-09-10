@@ -212,6 +212,8 @@ if col_agrupacion != "(Ninguno)":
 # -----------------------------------------------------
 # 4. FUNCIONALIDADES
 # -----------------------------------------------------
+
+# Código para mostrar municipios en dataframe sin código inicial
 def preparar_para_mostrar(df):
     """Copia del DataFrame con MUNICIPIO simplificado, solo para visualización."""
     df_vista = df.copy()
@@ -221,6 +223,7 @@ def preparar_para_mostrar(df):
         )
     return df_vista
 
+# Código para consulta de API
 import requests
 from urllib.parse import quote
 
@@ -259,6 +262,9 @@ def obtener_cultivos_municipio(nombre_municipio: str, tipo_cultivo: str) -> pd.D
 
     return df_cultivos[columnas_presentes].sort_values("ano", ascending=False)
 
+# Código para ordenar con sorted() teniendo en cuenta tildes
+import locale
+locale.setlocale(locale.LC_COLLATE, 'es_ES.UTF-8')
 
 tab_visualizacion, tab_cruce, tab_prov_muni, tab_jovenesAg = st.tabs(["📋 Visualización", "🔗 Cruce", "📍 Provincia/municipio", "👶 Jóvenes agricultores"])
 with tab_visualizacion:
@@ -399,7 +405,8 @@ with tab_prov_muni:
 
     # Solo provincias de la lista que realmente existen en los datos
     provincias_existentes = datos_df["PROVINCIA"].dropna().unique()
-    provincias_disp = sorted([p for p in PROVINCIAS_PERMITIDAS if p in provincias_existentes])
+    provincias_disp = sorted([p for p in PROVINCIAS_PERMITIDAS if p in provincias_existentes],
+                             key=locale.strxfrm)
 
     if not provincias_disp:
         st.warning("Ninguna de las provincias esperadas está presente en los datos.")
