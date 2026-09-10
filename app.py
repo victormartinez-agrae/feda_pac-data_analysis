@@ -270,8 +270,8 @@ def obtener_cultivos_municipio(nombre_municipio: str, tipo_cultivo: str) -> pd.D
         df_cultivos[columnas_presentes]
         .sort_values("ano", ascending=False)
         .rename(columns={
-            "superficie_secano": "superficie_secano",
-            "superficie_regadio": "superficie_regadio"
+            "superficie_secano": "superficie_secano_ha",
+            "superficie_regadio": "superficie_regadio_ha"
         })
     )
     df_return["superficie_total_ha"] = df_return["superficie_secano_ha"] +df_return["superficie_regadio_ha"] 
