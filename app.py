@@ -456,30 +456,31 @@ with tab_prov_muni:
                 "IMPORTE_EUROS": st.column_config.NumberColumn(format="euro"),
             },
             hide_index=True,
-
-            st.divider()
-            st.subheader("🌾 Superficies de cultivos leñosos")
-            
-            nombre_municipio_limpio = municipio_sel.split(" - ", 1)[-1] if " - " in municipio_sel else municipio_sel
-            
-            df_cultivos = obtener_cultivos_municipio(nombre_municipio_limpio)
-            
-            if df_cultivos.empty:
-                st.info(f"No se han encontrado datos de cultivos leñosos para '{nombre_municipio_limpio}' en la API.")
-            else:
-                st.dataframe(
-                    df_cultivos,
-                    width='stretch',
-                    column_config={
-                        "ano": st.column_config.NumberColumn("Año", format="%d"),
-                        "grupo_de_cultivo": "Grupo de cultivo",
-                        "cultivo": "Cultivo",
-                        "superficie_secano_ha": st.column_config.NumberColumn("Secano (ha)", format="%.2f"),
-                        "superficie_regadio_ha": st.column_config.NumberColumn("Regadío (ha)", format="%.2f"),
-                        "superficie_total_ha": st.column_config.NumberColumn("Total (ha)", format="%.2f"),
-                    },
-                    hide_index=True,
-                )
         )
+
+        st.divider()
+        st.subheader("🌾 Superficies de cultivos leñosos")
+        
+        nombre_municipio_limpio = municipio_sel.split(" - ", 1)[-1] if " - " in municipio_sel else municipio_sel
+        
+        df_cultivos = obtener_cultivos_municipio(nombre_municipio_limpio)
+        
+        if df_cultivos.empty:
+            st.info(f"No se han encontrado datos de cultivos leñosos para '{nombre_municipio_limpio}' en la API.")
+        else:
+            st.dataframe(
+                df_cultivos,
+                width='stretch',
+                column_config={
+                    "ano": st.column_config.NumberColumn("Año", format="%d"),
+                    "grupo_de_cultivo": "Grupo de cultivo",
+                    "cultivo": "Cultivo",
+                    "superficie_secano_ha": st.column_config.NumberColumn("Secano (ha)", format="%.2f"),
+                    "superficie_regadio_ha": st.column_config.NumberColumn("Regadío (ha)", format="%.2f"),
+                    "superficie_total_ha": st.column_config.NumberColumn("Total (ha)", format="%.2f"),
+                },
+                hide_index=True,
+            )
+
 with tab_jovenesAg:
     st.write("ToDo")
