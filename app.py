@@ -228,13 +228,16 @@ import requests
 from urllib.parse import quote
 
 API_BASE_URLS = {
-    "Leñosos": "https://analisis.datosabiertos.jcyl.es/api/explore/v2.1/catalog/datasets/superficies-de-cultivos-lenosos/records",
-    "Herbáceos": "https://analisis.datosabiertos.jcyl.es/api/explore/v2.1/catalog/datasets/superficies-de-cultivos-herbaceos/records",
+    "Superficies de cultivos municipales": "https://analisis.datosabiertos.jcyl.es/api/explore/v2.1/catalog/datasets/superficies-de-cultivos-municipales/records",
+    "Superficie de cultivos leñosos": "https://analisis.datosabiertos.jcyl.es/api/explore/v2.1/catalog/datasets/superficies-de-cultivos-lenosos/records",
+    "Superficie de cultivos herbáceos": "https://analisis.datosabiertos.jcyl.es/api/explore/v2.1/catalog/datasets/superficies-de-cultivos-herbaceos/records",
 }
-
+["Superficies de cultivos municipales",
+                     "Superficie de cultivos leñosos",
+                     "Superficie de cultivos herbáceos"],
 @st.cache_data
 def obtener_cultivos_municipio(nombre_municipio: str, tipo_cultivo: str) -> pd.DataFrame:
-    """Consulta la API de la JCyL (leñosos o herbáceos) y devuelve un DataFrame con los cultivos del municipio."""
+    """Consulta la API de la JCyL y devuelve un DataFrame con los cultivos del municipio."""
     base_url = API_BASE_URLS[tipo_cultivo]
     where_clause = f'municipio LIKE "{nombre_municipio}"'
     params = {
@@ -468,22 +471,22 @@ with tab_prov_muni:
         )
         
         st.divider()
+        st.subheader(f"🔀 Datos a extraer de la API")
 
-        tipo_cultivo = st.radio(
-            "Tipo de cultivo",
-            options=["Leñosos", "Herbáceos"],
-            horizontal=True,
+        tipo_cultivo = st.selectbox(
+            "Datos de consulta",
+            options=["Superficies de cultivos municipales",
+                     "Superficie de cultivos leñosos",
+                     "Superficie de cultivos herbáceos"],
             key="tipo_cultivo_sel",
         )
-
-        st.subheader(f"🌾 Superficies de cultivos {tipo_cultivo.lower()}")
 
         nombre_municipio_limpio = municipio_sel.split(" - ", 1)[-1] if " - " in municipio_sel else municipio_sel
 
         df_cultivos = obtener_cultivos_municipio(nombre_municipio_limpio, tipo_cultivo)
 
         if df_cultivos.empty:
-            st.info(f"No se han encontrado datos de cultivos {tipo_cultivo.lower()} para '{nombre_municipio_limpio}' en la API.")
+            st.info(f"No se han encontrado datos de «{tipo_cultivo.lower()}» para '{nombre_municipio_limpio}' en la API.")
         else:
             # --- Selector de Grupo de cultivo ---
             grupos_disp = sorted(df_cultivos["grupo_de_cultivo"].dropna().unique())
