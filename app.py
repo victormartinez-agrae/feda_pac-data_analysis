@@ -399,7 +399,7 @@ with tab_prov_muni:
 
     # Solo provincias de la lista que realmente existen en los datos
     provincias_existentes = datos_df["PROVINCIA"].dropna().unique()
-    provincias_disp = [p for p in PROVINCIAS_PERMITIDAS if p in provincias_existentes]
+    provincias_disp = sort([p for p in PROVINCIAS_PERMITIDAS if p in provincias_existentes])
 
     if not provincias_disp:
         st.warning("Ninguna de las provincias esperadas está presente en los datos.")
@@ -535,7 +535,7 @@ with tab_prov_muni:
 
                 orden_sel = st.radio(
                     "Orden de apilado",
-                    options=["Secano --> Regadío", "Regadío --> Secano"],
+                    options=["Secano / Regadío", "Regadío / Secano"],
                     horizontal=True,
                     key="orden_apilado_cultivos",
                 )
@@ -543,7 +543,7 @@ with tab_prov_muni:
                 COLOR_SECANO = "#8B5A2B"
                 COLOR_REGADIO = "#1E90FF"
 
-                if orden_sel == "Regadío --> Secano":
+                if orden_sel == "Regadío / Secano":
                     columnas_y = ["Secano (ha)", "Regadío (ha)"]
                     colores = [COLOR_SECANO, COLOR_REGADIO]
                 else:
