@@ -221,6 +221,41 @@ def preparar_para_mostrar(df):
         )
     return df_vista
 
+import requests
+from urllib.parse import quote
+
+API_BASE_URL = "https://analisis.datosabiertos.jcyl.es/api/explore/v2.1/catalog/datasets/superficies-de-cultivos-lenosos/records"
+
+@st.cache_data
+def obtener_cultivos_municipio(nombre_municipio: str) -> pd.DataFrame:
+    """Consulta la API de la JCyL y devuelve un DataFrame con los cultivos del municipio."""
+    where_clause = f'municipio LIKE "{nombre_municipio}"'
+    params = {
+        "where": where_clause,
+        "limit": 100,  # margen amplio; ajustar si un municipio tiene más de 100 registros
+    }
+
+    try:
+        resp = requests.get(API_BASE_URL, params=params, timeout=10)
+        resp.raise_for_status()
+        data = resp.json()
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error al consultar la API de cultivos: {e}")
+        return pd.DataFrame()
+
+    registros = data.get("results", [])
+    if not registros:
+        return pd.DataFrame()
+
+    df_cultivos = pd.DataFrame(registros)
+
+    columnas_interes = ["ano", "grupo_de_cultivo", "cultivo",
+                        "superficie_secano_ha", "superficie_regadio_ha", "superficie_total_ha"]
+    columnas_presentes = [c for c in columnas_interes if c in df_cultivos.columns]
+
+    return df_cultivos[columnas_presentes].sort_values("ano", ascending=False)
+
+
 tab_visualizacion, tab_cruce, tab_prov_muni, tab_jovenesAg = st.tabs(["📋 Visualización", "🔗 Cruce", "📍 Provincia/municipio", "👶 Jóvenes agricultores"])
 with tab_visualizacion:
     st.subheader("📋 Visualización de datos de trabajo")
@@ -387,7 +422,10 @@ with tab_prov_muni:
             key=f"municipio_sel__{provincia_sel}",
         )
 
-        st.markdown(f"**Provincia:** {provincia_sel} &nbsp;&nbsp;|&nbsp;&nbsp; **Municipio:** {municipio_sel}")
+        st.markdown(f"**Provincia:** {provincia_sel} &nbsp;&nbsp;|&nbsp;&nbsp; **Municipio:** {municipio_sel[8:]}")
+        
+        st.divider()
+        st.subheader("💲 PAC")       
 
         df_municipio = datos_df[
             (datos_df["PROVINCIA"] == provincia_sel) & (datos_df["MUNICIPIO"] == municipio_sel)
@@ -418,6 +456,30 @@ with tab_prov_muni:
                 "IMPORTE_EUROS": st.column_config.NumberColumn(format="euro"),
             },
             hide_index=True,
+
+            st.divider()
+            st.subheader("🌾 Superficies de cultivos leñosos")
+            
+            nombre_municipio_limpio = municipio_sel.split(" - ", 1)[-1] if " - " in municipio_sel else municipio_sel
+            
+            df_cultivos = obtener_cultivos_municipio(nombre_municipio_limpio)
+            
+            if df_cultivos.empty:
+                st.info(f"No se han encontrado datos de cultivos leñosos para '{nombre_municipio_limpio}' en la API.")
+            else:
+                st.dataframe(
+                    df_cultivos,
+                    width='stretch',
+                    column_config={
+                        "ano": st.column_config.NumberColumn("Año", format="%d"),
+                        "grupo_de_cultivo": "Grupo de cultivo",
+                        "cultivo": "Cultivo",
+                        "superficie_secano_ha": st.column_config.NumberColumn("Secano (ha)", format="%.2f"),
+                        "superficie_regadio_ha": st.column_config.NumberColumn("Regadío (ha)", format="%.2f"),
+                        "superficie_total_ha": st.column_config.NumberColumn("Total (ha)", format="%.2f"),
+                    },
+                    hide_index=True,
+                )
         )
 with tab_jovenesAg:
     st.write("ToDo")
