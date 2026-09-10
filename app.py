@@ -162,6 +162,7 @@ for col in columnas_a_filtrar:
             f"Valores para '{col}'",
             options=valores_unicos,
             default=valores_unicos,
+            format_func=lambda s: s.split(" - ", 1)[-1] if col == "MUNICIPIO" and " - " in str(s) else s,
         )
         df_filtrado = df_filtrado[df_filtrado[col].isin(seleccionados)]
 
@@ -211,6 +212,15 @@ if col_agrupacion != "(Ninguno)":
 # -----------------------------------------------------
 # 4. FUNCIONALIDADES
 # -----------------------------------------------------
+def preparar_para_mostrar(df):
+    """Copia del DataFrame con MUNICIPIO simplificado, solo para visualización."""
+    df_vista = df.copy()
+    if "MUNICIPIO" in df_vista.columns:
+        df_vista["MUNICIPIO"] = df_vista["MUNICIPIO"].apply(
+            lambda s: s.split(" - ", 1)[-1] if isinstance(s, str) and " - " in s else s
+        )
+    return df_vista
+
 tab_visualizacion, tab_cruce, tab_prov_muni, tab_jovenesAg = st.tabs(["📋 Visualización", "🔗 Cruce", "📍 Provincia/municipio", "👶 Jóvenes agricultores"])
 with tab_visualizacion:
     st.subheader("📋 Visualización de datos de trabajo")
@@ -284,7 +294,11 @@ with tab_visualizacion:
             elif col != "CONVOCATORIA" and pd.api.types.is_numeric_dtype(df_mostrar[col]):
                 column_config[col] = st.column_config.NumberColumn(format="euro")
     
-        st.dataframe(df_mostrar[columnas_a_mostrar], width='stretch', column_config=column_config)
+        st.dataframe(
+            preparar_para_mostrar(df_mostrar[columnas_a_mostrar]),
+            width='stretch',
+            column_config=column_config
+        )
         
         # Botón de descarga
         csv_export = df_mostrar[columnas_a_mostrar].to_csv(index=False).encode("utf-8")
@@ -325,7 +339,10 @@ with tab_cruce:
     st.caption(f"{len(resultado)} beneficiarios cumplen ambas condiciones")
     if resultado:
         df_cruce = df_filtrado[df_filtrado["BENEFICIARIO"].isin(resultado)]
-        st.dataframe(df_cruce, width='stretch')
+        st.dataframe(
+            preparar_para_mostrar(df_cruce),
+            width='stretch'
+        )
         # Botón de descarga
         csv_export_cruce = df_cruce.to_csv(index=False).encode("utf-8")
         st.download_button(
@@ -365,6 +382,8 @@ with tab_prov_muni:
         municipio_sel = st.selectbox(
             "Municipio",
             options=municipios_disp,
+            format_func=lambda s: s[8:],
+            #format_func=lambda s: s.split(" - ", 1)[-1] if " - " in s else s
             key=f"municipio_sel__{provincia_sel}",
         )
 
@@ -391,7 +410,7 @@ with tab_prov_muni:
         )
 
         st.dataframe(
-            resumen_municipio,
+            preparar_para_mostrar(resumen_municipio),
             width='stretch',
             column_config={
                 "Nº filas": st.column_config.NumberColumn(format="%d"),
