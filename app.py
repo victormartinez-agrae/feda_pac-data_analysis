@@ -520,8 +520,32 @@ with tab_prov_muni:
                     })
                     .sort_index()
                 )
+
+                orden_sel = st.radio(
+                    "Orden de apilado",
+                    options=["Secano / Regadío", "Regadío / Secano"],
+                    horizontal=True,
+                    key="orden_apilado_cultivos",
+                )
         
-                st.bar_chart(df_evolucion, stack=True)
+                COLOR_SECANO = "#8B5A2B"   # marrón
+                COLOR_REGADIO = "#1E90FF"  # azul
+        
+                if orden_sel == "Secano / Regadío":
+                    columnas_y = ["Secano (ha)", "Regadío (ha)"]
+                    colores = [COLOR_SECANO, COLOR_REGADIO]
+                else:
+                    columnas_y = ["Regadío (ha)", "Secano (ha)"]
+                    colores = [COLOR_REGADIO, COLOR_SECANO]
+        
+                st.bar_chart(
+                    df_evolucion,
+                    y=columnas_y,
+                    color=colores,
+                    stack=True,
+                    x_label="Año",
+                    y_label="ha",
+                )
 
 with tab_jovenesAg:
     st.write("ToDo")
