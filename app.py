@@ -468,8 +468,30 @@ with tab_prov_muni:
         if df_cultivos.empty:
             st.info(f"No se han encontrado datos de cultivos leñosos para '{nombre_municipio_limpio}' en la API.")
         else:
+            # --- Selector de Grupo de cultivo ---
+            grupos_disp = sorted(df_cultivos["grupo_de_cultivo"].dropna().unique())
+            grupos_sel = st.multiselect(
+                "Grupo de cultivo",
+                options=grupos_disp,
+                default=grupos_disp,
+                key=f"grupos_cultivo_sel__{municipio_sel}",
+            )
+        
+            df_cultivos_filtrado = df_cultivos[df_cultivos["grupo_de_cultivo"].isin(grupos_sel)]
+        
+            # --- Selector de Cultivo (depende de los grupos ya seleccionados) ---
+            cultivos_disp = sorted(df_cultivos_filtrado["cultivo"].dropna().unique())
+            cultivos_sel = st.multiselect(
+                "Cultivo",
+                options=cultivos_disp,
+                default=cultivos_disp,
+                key=f"cultivos_sel__{municipio_sel}__{'_'.join(grupos_sel)}",
+            )
+        
+            df_cultivos_filtrado = df_cultivos_filtrado[df_cultivos_filtrado["cultivo"].isin(cultivos_sel)]
+        
             st.dataframe(
-                df_cultivos,
+                df_cultivos_filtrado,
                 width='stretch',
                 column_config={
                     "ano": st.column_config.NumberColumn("Año", format="%d"),
