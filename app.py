@@ -399,7 +399,7 @@ with tab_prov_muni:
 
     # Solo provincias de la lista que realmente existen en los datos
     provincias_existentes = datos_df["PROVINCIA"].dropna().unique()
-    provincias_disp = sort([p for p in PROVINCIAS_PERMITIDAS if p in provincias_existentes])
+    provincias_disp = sorted([p for p in PROVINCIAS_PERMITIDAS if p in provincias_existentes])
 
     if not provincias_disp:
         st.warning("Ninguna de las provincias esperadas está presente en los datos.")
