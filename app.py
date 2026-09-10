@@ -224,23 +224,27 @@ def preparar_para_mostrar(df):
 import requests
 from urllib.parse import quote
 
-API_BASE_URL = "https://analisis.datosabiertos.jcyl.es/api/explore/v2.1/catalog/datasets/superficies-de-cultivos-lenosos/records"
+API_BASE_URLS = {
+    "Leñosos": "https://analisis.datosabiertos.jcyl.es/api/explore/v2.1/catalog/datasets/superficies-de-cultivos-lenosos/records",
+    "Herbáceos": "https://analisis.datosabiertos.jcyl.es/api/explore/v2.1/catalog/datasets/superficies-de-cultivos-herbaceos/records",
+}
 
 @st.cache_data
-def obtener_cultivos_municipio(nombre_municipio: str) -> pd.DataFrame:
-    """Consulta la API de la JCyL y devuelve un DataFrame con los cultivos del municipio."""
+def obtener_cultivos_municipio(nombre_municipio: str, tipo_cultivo: str) -> pd.DataFrame:
+    """Consulta la API de la JCyL (leñosos o herbáceos) y devuelve un DataFrame con los cultivos del municipio."""
+    base_url = API_BASE_URLS[tipo_cultivo]
     where_clause = f'municipio LIKE "{nombre_municipio}"'
     params = {
         "where": where_clause,
-        "limit": 100,  # margen amplio; ajustar si un municipio tiene más de 100 registros
+        "limit": 100,
     }
 
     try:
-        resp = requests.get(API_BASE_URL, params=params, timeout=10)
+        resp = requests.get(base_url, params=params, timeout=10)
         resp.raise_for_status()
         data = resp.json()
     except requests.exceptions.RequestException as e:
-        st.error(f"Error al consultar la API de cultivos: {e}")
+        st.error(f"Error al consultar la API de cultivos {tipo_cultivo.lower()}: {e}")
         return pd.DataFrame()
 
     registros = data.get("results", [])
@@ -457,16 +461,24 @@ with tab_prov_muni:
             },
             hide_index=True,
         )
-
+        
         st.divider()
-        st.subheader("🌾 Superficies de cultivos leñosos")
-        
+
+        tipo_cultivo = st.radio(
+            "Tipo de cultivo",
+            options=["Leñosos", "Herbáceos"],
+            horizontal=True,
+            key="tipo_cultivo_sel",
+        )
+
+        st.subheader(f"🌾 Superficies de cultivos {tipo_cultivo.lower()}")
+
         nombre_municipio_limpio = municipio_sel.split(" - ", 1)[-1] if " - " in municipio_sel else municipio_sel
-        
-        df_cultivos = obtener_cultivos_municipio(nombre_municipio_limpio)
-        
+
+        df_cultivos = obtener_cultivos_municipio(nombre_municipio_limpio, tipo_cultivo)
+
         if df_cultivos.empty:
-            st.info(f"No se han encontrado datos de cultivos leñosos para '{nombre_municipio_limpio}' en la API.")
+            st.info(f"No se han encontrado datos de cultivos {tipo_cultivo.lower()} para '{nombre_municipio_limpio}' en la API.")
         else:
             # --- Selector de Grupo de cultivo ---
             grupos_disp = sorted(df_cultivos["grupo_de_cultivo"].dropna().unique())
@@ -474,22 +486,22 @@ with tab_prov_muni:
                 "Grupo de cultivo",
                 options=grupos_disp,
                 default=grupos_disp,
-                key=f"grupos_cultivo_sel__{municipio_sel}",
+                key=f"grupos_cultivo_sel__{municipio_sel}__{tipo_cultivo}",
             )
-        
+
             df_cultivos_filtrado = df_cultivos[df_cultivos["grupo_de_cultivo"].isin(grupos_sel)]
-        
+
             # --- Selector de Cultivo (depende de los grupos ya seleccionados) ---
             cultivos_disp = sorted(df_cultivos_filtrado["cultivo"].dropna().unique())
             cultivos_sel = st.multiselect(
                 "Cultivo",
                 options=cultivos_disp,
                 default=cultivos_disp,
-                key=f"cultivos_sel__{municipio_sel}__{'_'.join(grupos_sel)}",
+                key=f"cultivos_sel__{municipio_sel}__{tipo_cultivo}__{'_'.join(grupos_sel)}",
             )
-        
+
             df_cultivos_filtrado = df_cultivos_filtrado[df_cultivos_filtrado["cultivo"].isin(cultivos_sel)]
-        
+
             st.dataframe(
                 df_cultivos_filtrado,
                 width='stretch',
@@ -503,12 +515,12 @@ with tab_prov_muni:
                 },
                 hide_index=True,
             )
-            
+
             # Gráfico temporal: evolución de superficies por año
             if not df_cultivos_filtrado.empty:
                 df_cultivos_filtrado = df_cultivos_filtrado.copy()
                 df_cultivos_filtrado["ano"] = pd.to_numeric(df_cultivos_filtrado["ano"], errors="coerce").astype("Int64")
-        
+
                 df_evolucion = (
                     df_cultivos_filtrado
                     .dropna(subset=["ano"])
@@ -527,17 +539,17 @@ with tab_prov_muni:
                     horizontal=True,
                     key="orden_apilado_cultivos",
                 )
-        
-                COLOR_SECANO = "#8B5A2B"   # marrón
-                COLOR_REGADIO = "#1E90FF"  # azul
-        
+
+                COLOR_SECANO = "#8B5A2B"
+                COLOR_REGADIO = "#1E90FF"
+
                 if orden_sel == "Secano / Regadío":
                     columnas_y = ["Secano (ha)", "Regadío (ha)"]
                     colores = [COLOR_SECANO, COLOR_REGADIO]
                 else:
                     columnas_y = ["Regadío (ha)", "Secano (ha)"]
                     colores = [COLOR_REGADIO, COLOR_SECANO]
-        
+
                 st.bar_chart(
                     df_evolucion,
                     y=columnas_y,
@@ -546,6 +558,7 @@ with tab_prov_muni:
                     x_label="Año",
                     y_label="ha",
                 )
+
 
 with tab_jovenesAg:
     st.write("ToDo")
