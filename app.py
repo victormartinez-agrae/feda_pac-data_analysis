@@ -512,17 +512,16 @@ with tab_prov_muni:
                 df_evolucion = (
                     df_cultivos_filtrado
                     .dropna(subset=["ano"])
-                    .groupby("ano")[["superficie_secano_ha", "superficie_regadio_ha", "superficie_total_ha"]]
+                    .groupby("ano")[["superficie_secano_ha", "superficie_regadio_ha"]]
                     .sum()
                     .rename(columns={
                         "superficie_secano_ha": "Secano (ha)",
                         "superficie_regadio_ha": "Regadío (ha)",
-                        "superficie_total_ha": "Total (ha)",
                     })
                     .sort_index()
                 )
         
-                st.line_chart(df_evolucion)
+                st.bar_chart(df_evolucion, stack=True)
 
 with tab_jovenesAg:
     st.write("ToDo")
