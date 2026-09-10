@@ -211,7 +211,7 @@ if col_agrupacion != "(Ninguno)":
 # -----------------------------------------------------
 # 4. FUNCIONALIDADES
 # -----------------------------------------------------
-tab_visualizacion, tab_cruce, tab_jovenesAg = st.tabs(["📋 Visualización", "🔗 Cruce", "👶 Jóvenes agricultores"])
+tab_visualizacion, tab_cruce, tab_prov_muni, tab_jovenesAg = st.tabs(["📋 Visualización", "🔗 Cruce", "📍 Provincia/municipio", "👶 Jóvenes agricultores"])
 with tab_visualizacion:
     st.subheader("📋 Visualización de datos de trabajo")
 
@@ -334,6 +334,71 @@ with tab_cruce:
             file_name="datos_FEDA_PAC_cruce.csv",
             mime="text/csv",
             key="descarga_cruce",
+        )
+with tab_provincia_municipio:
+    st.subheader("📍 Consulta por provincia y municipio")
+
+    PROVINCIAS_PERMITIDAS = ["León", "Zamora", "Salamanca", "Valladolid",
+                              "Palencia", "Burgos", "Soria", "Segovia", "Ávila"]
+
+    # Solo provincias de la lista que realmente existen en los datos
+    provincias_existentes = datos_df["PROVINCIA"].dropna().unique()
+    provincias_disp = [p for p in PROVINCIAS_PERMITIDAS if p in provincias_existentes]
+
+    if not provincias_disp:
+        st.warning("Ninguna de las provincias esperadas está presente en los datos.")
+    else:
+        provincia_sel = st.selectbox(
+            "Provincia",
+            options=provincias_disp,
+            key="provincia_sel",
+        )
+
+        # Municipios disponibles para la provincia seleccionada
+        municipios_disp = sorted(
+            datos_df.loc[datos_df["PROVINCIA"] == provincia_sel, "MUNICIPIO"].dropna().unique()
+        )
+
+        # La key incluye la provincia: al cambiar de provincia, el widget se
+        # reinicia automáticamente al primer municipio, sin arrastrar un
+        # valor que ya no pertenece a la nueva lista de opciones.
+        municipio_sel = st.selectbox(
+            "Municipio",
+            options=municipios_disp,
+            key=f"municipio_sel__{provincia_sel}",
+        )
+
+        st.markdown(f"**Provincia:** {provincia_sel} &nbsp;&nbsp;|&nbsp;&nbsp; **Municipio:** {municipio_sel}")
+
+        df_municipio = datos_df[
+            (datos_df["PROVINCIA"] == provincia_sel) & (datos_df["MUNICIPIO"] == municipio_sel)
+        ]
+
+        resumen_municipio = (
+            df_municipio.groupby("CONVOCATORIA")
+            .agg(
+                num_filas=("BENEFICIARIO", "size"),
+                num_beneficiarios=("BENEFICIARIO", "nunique"),
+                total_importe_euros=("IMPORTE_EUROS", "sum"),
+            )
+            .reset_index()
+            .rename(columns={
+                "CONVOCATORIA": "Año",
+                "num_filas": "Nº filas",
+                "num_beneficiarios": "Nº beneficiarios",
+                "total_importe_euros": "IMPORTE_EUROS",
+            })
+        )
+
+        st.dataframe(
+            resumen_municipio,
+            width='stretch',
+            column_config={
+                "Nº filas": st.column_config.NumberColumn(format="%d"),
+                "Nº beneficiarios": st.column_config.NumberColumn(format="%d"),
+                "IMPORTE_EUROS": st.column_config.NumberColumn(format="euro"),
+            },
+            hide_index=True,
         )
 with tab_jovenesAg:
     st.write("ToDo")
