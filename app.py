@@ -262,9 +262,7 @@ def obtener_cultivos_municipio(nombre_municipio: str, tipo_cultivo: str) -> pd.D
 
     return df_cultivos[columnas_presentes].sort_values("ano", ascending=False)
 
-# Código para ordenar con sorted() teniendo en cuenta tildes
-import locale
-locale.setlocale(locale.LC_COLLATE, 'es_ES.UTF-8')
+
 
 tab_visualizacion, tab_cruce, tab_prov_muni, tab_jovenesAg = st.tabs(["📋 Visualización", "🔗 Cruce", "📍 Provincia/municipio", "👶 Jóvenes agricultores"])
 with tab_visualizacion:
@@ -405,8 +403,7 @@ with tab_prov_muni:
 
     # Solo provincias de la lista que realmente existen en los datos
     provincias_existentes = datos_df["PROVINCIA"].dropna().unique()
-    provincias_disp = sorted([p for p in PROVINCIAS_PERMITIDAS if p in provincias_existentes],
-                             key=locale.strxfrm)
+    provincias_disp = sorted([p for p in PROVINCIAS_PERMITIDAS if p in provincias_existentes])
 
     if not provincias_disp:
         st.warning("Ninguna de las provincias esperadas está presente en los datos.")
