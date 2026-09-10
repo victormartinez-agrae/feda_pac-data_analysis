@@ -503,6 +503,26 @@ with tab_prov_muni:
                 },
                 hide_index=True,
             )
+            
+            # Gráfico temporal: evolución de superficies por año
+            if not df_cultivos_filtrado.empty:
+                df_cultivos_filtrado = df_cultivos_filtrado.copy()
+                df_cultivos_filtrado["ano"] = pd.to_numeric(df_cultivos_filtrado["ano"], errors="coerce").astype("Int64")
+        
+                df_evolucion = (
+                    df_cultivos_filtrado
+                    .dropna(subset=["ano"])
+                    .groupby("ano")[["superficie_secano_ha", "superficie_regadio_ha", "superficie_total_ha"]]
+                    .sum()
+                    .rename(columns={
+                        "superficie_secano_ha": "Secano (ha)",
+                        "superficie_regadio_ha": "Regadío (ha)",
+                        "superficie_total_ha": "Total (ha)",
+                    })
+                    .sort_index()
+                )
+        
+                st.line_chart(df_evolucion)
 
 with tab_jovenesAg:
     st.write("ToDo")
