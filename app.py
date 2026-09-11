@@ -232,9 +232,7 @@ API_BASE_URLS = {
     "Superficie de cultivos leñosos": "https://analisis.datosabiertos.jcyl.es/api/explore/v2.1/catalog/datasets/superficies-de-cultivos-lenosos/records",
     "Superficie de cultivos herbáceos": "https://analisis.datosabiertos.jcyl.es/api/explore/v2.1/catalog/datasets/superficies-de-cultivos-herbaceos/records",
 }
-["Superficies de cultivos municipales",
-                     "Superficie de cultivos leñosos",
-                     "Superficie de cultivos herbáceos"],
+
 @st.cache_data
 def obtener_cultivos_municipio(nombre_municipio: str, tipo_cultivo: str) -> pd.DataFrame:
     """Consulta la API de la JCyL y devuelve un DataFrame con los cultivos del municipio."""
