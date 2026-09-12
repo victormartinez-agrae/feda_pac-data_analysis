@@ -394,32 +394,31 @@ elif seccion_activa == "⚙️ Configuración":
     st.subheader("⚙️ Configuración: clasificación de medidas")
     st.caption("Clasifica cada MEDIDA como recurrente o puntual. Lo no clasificado aparece en 'Sin clasificar'.")
 
-    def on_change_recurrentes():
-        seleccion = set(st.session_state["config_recurrentes"])
-        st.session_state["config_puntuales"] = [
-            m for m in st.session_state["config_puntuales"] if m not in seleccion
-        ]
+    # Opciones dinámicas: cada multiselect excluye lo ya elegido en el otro
+    opciones_recurrentes = [m for m in TODAS_MEDIDAS if m not in st.session_state.get("config_puntuales", [])]
+    opciones_puntuales = [m for m in TODAS_MEDIDAS if m not in st.session_state.get("config_recurrentes", [])]
 
-    def on_change_puntuales():
-        seleccion = set(st.session_state["config_puntuales"])
-        st.session_state["config_recurrentes"] = [
-            m for m in st.session_state["config_recurrentes"] if m not in seleccion
-        ]
+    # Salvaguarda: si el valor guardado ya no está entre las opciones
+    # disponibles, se descarta silenciosamente para evitar un error
+    st.session_state["config_recurrentes"] = [
+        m for m in st.session_state.get("config_recurrentes", []) if m in opciones_recurrentes
+    ]
+    st.session_state["config_puntuales"] = [
+        m for m in st.session_state.get("config_puntuales", []) if m in opciones_puntuales
+    ]
 
     col_rec, col_punt = st.columns(2)
     with col_rec:
         st.multiselect(
             "🔁 Medidas recurrentes",
-            options=TODAS_MEDIDAS,
+            options=opciones_recurrentes,
             key="config_recurrentes",
-            on_change=on_change_recurrentes,
         )
     with col_punt:
         st.multiselect(
             "📌 Medidas puntuales",
-            options=TODAS_MEDIDAS,
+            options=opciones_puntuales,
             key="config_puntuales",
-            on_change=on_change_puntuales,
         )
 
     st.multiselect(
