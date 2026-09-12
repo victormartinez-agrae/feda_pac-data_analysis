@@ -4,13 +4,6 @@ from pathlib import Path
 
 st.set_page_config(page_title="Explorador de Datos", layout="wide")
 
-
-st.write("Token cargado:", "github_token" in st.secrets)
-
-
-st.write("asdf")
-
-
 # ----------------------------------------------------
 # 1. CONFIGURACIÓN: rutas a los CSV
 # ----------------------------------------------------
@@ -103,9 +96,83 @@ def preparar_para_mostrar(df):
 
 
 # -----------------------------------------------------
-# 5. SELECTOR DE SECCIÓN (sustituye a st.tabs)
+# 5. CONFIGURACIÓN REPO
 # -----------------------------------------------------
-OPCIONES_SECCION = ["📋 Visualización", "🔗 Cruce", "📍 Provincia/municipio", "👶 Jóvenes agricultores"]
+import json
+from github import Github, GithubException
+
+CONFIG_DIR = Path("config")
+FILE_CLASIFICACION = CONFIG_DIR / "clasificacion_medidas.json"
+
+GITHUB_REPO_NAME = "victormartinez-agrae/feda_pac-data_analysis"
+RUTA_FICHERO_CONFIG_REPO = "config/clasificacion_medidas.json"
+
+
+def cargar_clasificacion_guardada() -> dict:
+    """Lee la clasificación guardada en el repo (copia local clonada)."""
+    if FILE_CLASIFICACION.exists():
+        try:
+            with open(FILE_CLASIFICACION, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            return {
+                "recurrentes": data.get("recurrentes", []),
+                "puntuales": data.get("puntuales", []),
+            }
+        except (json.JSONDecodeError, OSError):
+            return {"recurrentes": [], "puntuales": []}
+    return {"recurrentes": [], "puntuales": []}
+
+
+def guardar_clasificacion_en_github(recurrentes: list, puntuales: list) -> bool:
+    """Escribe la clasificación en GitHub vía API (persiste para futuras sesiones)."""
+    contenido = json.dumps(
+        {"recurrentes": recurrentes, "puntuales": puntuales},
+        ensure_ascii=False, indent=2,
+    )
+    try:
+        g = Github(st.secrets["github_token"])
+        repo = g.get_repo(GITHUB_REPO_NAME)
+        try:
+            archivo_actual = repo.get_contents(RUTA_FICHERO_CONFIG_REPO)
+            repo.update_file(
+                path=RUTA_FICHERO_CONFIG_REPO,
+                message="Actualiza clasificación de medidas desde la app",
+                content=contenido,
+                sha=archivo_actual.sha,
+            )
+        except GithubException as e:
+            if e.status == 404:
+                repo.create_file(
+                    path=RUTA_FICHERO_CONFIG_REPO,
+                    message="Crea fichero de clasificación de medidas",
+                    content=contenido,
+                )
+            else:
+                raise
+        return True
+    except Exception as e:
+        st.error(f"Error al guardar en GitHub: {e}")
+        return False
+
+
+# --- Inicialización global (disponible para cualquier sección) ---
+TODAS_MEDIDAS = sorted(datos_df["MEDIDA"].dropna().unique())
+
+if "config_recurrentes" not in st.session_state:
+    clasif_guardada = cargar_clasificacion_guardada()
+    st.session_state["config_recurrentes"] = [m for m in clasif_guardada["recurrentes"] if m in TODAS_MEDIDAS]
+    st.session_state["config_puntuales"] = [m for m in clasif_guardada["puntuales"] if m in TODAS_MEDIDAS]
+
+med_recurrentes = st.session_state["config_recurrentes"]
+med_puntuales = st.session_state["config_puntuales"]
+med_sin_clasificar = sorted(set(TODAS_MEDIDAS) - set(med_recurrentes) - set(med_puntuales))
+
+
+# -----------------------------------------------------
+# 6. SELECTOR DE SECCIÓN (sustituye a st.tabs)
+# -----------------------------------------------------
+OPCIONES_SECCION = ["📋 Visualización", "⚙️ Configuración", 
+                    "🔗 Cruce", "📍 Provincia/municipio", "👶 Jóvenes agricultores"]
 
 if "seccion_activa" not in st.session_state:
     st.session_state["seccion_activa"] = OPCIONES_SECCION[0]
@@ -129,7 +196,7 @@ st.divider()
 # =======================================================
 if seccion_activa == "📋 Visualización":
 
-    # --- 5.1. Opciones de visualización ---
+    # --- 6.1. Opciones de visualización ---
     with st.expander("⚙️ Opciones de visualización", expanded=True):
         if "columnas_seleccionadas" not in st.session_state:
             st.session_state["columnas_seleccionadas"] = columnas_disponibles
@@ -140,7 +207,7 @@ if seccion_activa == "📋 Visualización":
             on_change=reset_filtros_y_resumen,
         )
 
-    # --- 5.2. Filtros ---
+    # --- 6.2. Filtros ---
     df_filtrado = datos_df.copy()
 
     with st.expander("🔍 Filtros"):
@@ -203,7 +270,7 @@ if seccion_activa == "📋 Visualización":
             )
             df_filtrado = df_filtrado[mask]
 
-    # --- 5.3. Resumen por categoría ---
+    # --- 6.3. Resumen por categoría ---
     COLUMNAS_AGRUPACION = ["CONVOCATORIA", "BENEFICIARIO", "GRUPO_EMPRESA", "PROVINCIA",
                             "MUNICIPIO", "MEDIDA", "OBJETIVO_ESP"]
     COLUMNAS_ESTADISTICO = ["FEC_INI", "FEC_FIN", "FEAGA", "FEADER",
@@ -233,7 +300,7 @@ if seccion_activa == "📋 Visualización":
             )
             estadistico = ESTADISTICOS[estadistico_label]
 
-    # --- 5.4. Tabla resultante (filtrada o resumida) ---
+    # --- 6.4. Tabla resultante (filtrada o resumida) ---
     if col_agrupacion != "(Ninguno)":
 
         cols_estad_presentes = [c for c in COLUMNAS_ESTADISTICO if c in df_filtrado.columns]
@@ -318,6 +385,59 @@ if seccion_activa == "📋 Visualización":
         )
     else:
         st.warning("Selecciona al menos una columna para mostrar la tabla.")
+
+
+# =======================================================
+# SECCIÓN: CONFIGURACIÓN
+# =======================================================
+elif seccion_activa == "⚙️ Configuración":
+    st.subheader("⚙️ Configuración: clasificación de medidas")
+    st.caption("Clasifica cada MEDIDA como recurrente o puntual. Lo no clasificado aparece en 'Sin clasificar'.")
+
+    def on_change_recurrentes():
+        seleccion = set(st.session_state["config_recurrentes"])
+        st.session_state["config_puntuales"] = [
+            m for m in st.session_state["config_puntuales"] if m not in seleccion
+        ]
+
+    def on_change_puntuales():
+        seleccion = set(st.session_state["config_puntuales"])
+        st.session_state["config_recurrentes"] = [
+            m for m in st.session_state["config_recurrentes"] if m not in seleccion
+        ]
+
+    col_rec, col_punt = st.columns(2)
+    with col_rec:
+        st.multiselect(
+            "🔁 Medidas recurrentes",
+            options=TODAS_MEDIDAS,
+            key="config_recurrentes",
+            on_change=on_change_recurrentes,
+        )
+    with col_punt:
+        st.multiselect(
+            "📌 Medidas puntuales",
+            options=TODAS_MEDIDAS,
+            key="config_puntuales",
+            on_change=on_change_puntuales,
+        )
+
+    st.multiselect(
+        "❔ Sin clasificar",
+        options=med_sin_clasificar,
+        default=med_sin_clasificar,
+        disabled=True,
+        help="Se calcula automáticamente: son las medidas que no están en ninguna de las dos listas anteriores.",
+    )
+
+    st.divider()
+    if st.button("💾 Guardar clasificación"):
+        ok = guardar_clasificacion_en_github(
+            st.session_state["config_recurrentes"],
+            st.session_state["config_puntuales"],
+        )
+        if ok:
+            st.success("Clasificación guardada correctamente en GitHub.")
 
 
 # =======================================================
