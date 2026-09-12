@@ -3,3 +3,4 @@ pandas>=2.2,<3
 pyarrow>=14,<21
 numpy>=1.26,<3
 requests>=2.31,<3
+PyGithub>=2.3,<3
