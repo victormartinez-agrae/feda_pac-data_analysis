@@ -4,6 +4,10 @@ from pathlib import Path
 
 st.set_page_config(page_title="Explorador de Datos", layout="wide")
 
+
+st.write("Token cargado:", "github_token" in st.secrets)
+
+
 # ----------------------------------------------------
 # 1. CONFIGURACIÓN: rutas a los CSV
 # ----------------------------------------------------
