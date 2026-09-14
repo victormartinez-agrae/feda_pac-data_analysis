@@ -85,7 +85,7 @@ archivos_trabajo = ["REVISADA-Beneficiarios_municipio_ejercicio_financiero_2023.
                     "REVISADA-Beneficiarios_municipio_ejercicio_financiero_2025.csv"]
 tipo_carga = 'OneDrive' # 'GitHub', 'OneDrive'
 
-datos_df = cargar_datos(archivos_trabajo)
+datos_df = cargar_datos(archivos_trabajo, tipo_carga)
 columnas_disponibles = list(datos_df.columns)
 
 
