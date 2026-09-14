@@ -17,6 +17,22 @@ def cargar_csv(nombre_archivo: str) -> pd.DataFrame:
                        encoding_errors='backslashreplace',
                        dtype={'GRUPO_EMPRESA': str})
 
+@st.cache_data
+def cargar_csv_onedrive_publico(url_compartido: str) -> pd.DataFrame:
+    """Descarga un CSV desde un enlace público de OneDrive ('Cualquier usuario con el enlace')."""
+    url_descarga = url_compartido.split("?")[0] + "?download=1"
+
+    resp = requests.get(url_descarga, timeout=30)
+    resp.raise_for_status()
+
+    return pd.read_csv(
+        io.BytesIO(resp.content),
+        sep=';',
+        index_col=False,
+        encoding='utf-8',
+        encoding_errors='backslashreplace',
+        dtype={'GRUPO_EMPRESA': str},
+    )
 
 # -----------------------------------------------------
 # 2. PREPARACIÓN DE DATOS
@@ -24,11 +40,16 @@ def cargar_csv(nombre_archivo: str) -> pd.DataFrame:
 st.title("📋 Explorador de Datos FEDA PAC")
 
 @st.cache_data
-def cargar_datos(archivos: list[str]) -> pd.DataFrame:
+def cargar_datos(archivos: list[str], tipo_carga = 'GitHub') -> pd.DataFrame:
     lista_dfs = []
     for fichero in archivos:
         st.caption(f"Leyendo {fichero} ...")
-        df_aux = cargar_csv(fichero)
+        if tipo_carga=='GitHub':
+            df_aux = cargar_csv(fichero)
+        elif tipo_carga=='OneDrive':
+            df_aux = cargar_csv_onedrive_publico(fichero)
+        else:
+            raise ValueError('Tipo de carga de ficheros no contemplado en el código')
         df_aux['CONVOCATORIA'] = fichero[-8:-4]
         lista_dfs.append(df_aux)
 
@@ -56,9 +77,13 @@ def cargar_datos(archivos: list[str]) -> pd.DataFrame:
     return datos_df
 
 
-archivos_trabajo = ["TOP1000-Beneficiarios_municipio_ejercicio_financiero_2023.csv",
-                    "TOP1000-Beneficiarios_municipio_ejercicio_financiero_2024.csv",
-                    "TOP1000-Beneficiarios_municipio_ejercicio_financiero_2025.csv"]
+#archivos_trabajo = ["TOP1000-Beneficiarios_municipio_ejercicio_financiero_2023.csv",
+#                    "TOP1000-Beneficiarios_municipio_ejercicio_financiero_2024.csv",
+#                    "TOP1000-Beneficiarios_municipio_ejercicio_financiero_2025.csv"]
+archivos_trabajo = ["REVISADA-Beneficiarios_municipio_ejercicio_financiero_2023.csv",
+                    "REVISADA-Beneficiarios_municipio_ejercicio_financiero_2024.csv",
+                    "REVISADA-Beneficiarios_municipio_ejercicio_financiero_2025.csv"]
+tipo_carga = 'OneDrive' # 'GitHub', 'OneDrive'
 
 datos_df = cargar_datos(archivos_trabajo)
 columnas_disponibles = list(datos_df.columns)
