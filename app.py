@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from pathlib import Path
-import request
+import requests
 import io
 
 st.set_page_config(page_title="Explorador de Datos", layout="wide")
