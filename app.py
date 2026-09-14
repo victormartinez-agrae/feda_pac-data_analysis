@@ -82,9 +82,9 @@ def cargar_datos(archivos: list[str], tipo_carga = 'GitHub') -> pd.DataFrame:
 #archivos_trabajo = ["TOP1000-Beneficiarios_municipio_ejercicio_financiero_2023.csv",
 #                    "TOP1000-Beneficiarios_municipio_ejercicio_financiero_2024.csv",
 #                    "TOP1000-Beneficiarios_municipio_ejercicio_financiero_2025.csv"]
-archivos_trabajo = ["REVISADA-Beneficiarios_municipio_ejercicio_financiero_2023.csv",
-                    "REVISADA-Beneficiarios_municipio_ejercicio_financiero_2024.csv",
-                    "REVISADA-Beneficiarios_municipio_ejercicio_financiero_2025.csv"]
+archivos_trabajo = ["https://agrae-my.sharepoint.com/:x:/g/personal/victor_martinez_agrae_es/IQD8fEXV6IhCQZCe7YtvXg-7AYQl4G8whgZVNpUPAKMNc5w",
+                    "https://agrae-my.sharepoint.com/:x:/g/personal/victor_martinez_agrae_es/IQDt1FUkI9zaRLaE272LUWZhAdngtuTAk3Cn2pBevYRJMXs",
+                    "https://agrae-my.sharepoint.com/:x:/g/personal/victor_martinez_agrae_es/IQAO3Yl2lXXfSaBqUs209w-zAeBIUaomiS4h3rJaUr0G3Do"]
 tipo_carga = 'OneDrive' # 'GitHub', 'OneDrive'
 
 datos_df = cargar_datos(archivos_trabajo, tipo_carga)
