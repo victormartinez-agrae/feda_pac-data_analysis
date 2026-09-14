@@ -41,17 +41,27 @@ def cargar_csv_onedrive_publico(url_compartido: str) -> pd.DataFrame:
 # -----------------------------------------------------
 st.title("📋 Explorador de Datos FEDA PAC")
 
+import warnings
 @st.cache_data
 def cargar_datos(archivos: list[str], tipo_carga = 'GitHub') -> pd.DataFrame:
     lista_dfs = []
     for fichero in archivos:
         st.caption(f"Leyendo {fichero} ...")
-        if tipo_carga=='GitHub':
-            df_aux = cargar_csv(fichero)
-        elif tipo_carga=='OneDrive':
-            df_aux = cargar_csv_onedrive_publico(fichero)
-        else:
-            raise ValueError('Tipo de carga de ficheros no contemplado en el código')
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+                
+            if tipo_carga=='GitHub':
+                df_aux = cargar_csv(fichero)
+            elif tipo_carga=='OneDrive':
+                df_aux = cargar_csv_onedrive_publico(fichero)
+            else:
+                raise ValueError('Tipo de carga de ficheros no contemplado en el código')
+
+            if w:
+                for aviso in w:
+                    st.warning(f"⚠️ En **{fichero}**: {aviso.message}")
+        
         df_aux['CONVOCATORIA'] = fichero[-8:-4]
         lista_dfs.append(df_aux)
 
