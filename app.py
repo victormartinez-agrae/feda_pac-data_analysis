@@ -42,6 +42,8 @@ def cargar_csv_onedrive_publico(url_compartido: str) -> pd.DataFrame:
 st.title("📋 Explorador de Datos FEDA PAC")
 
 import warnings
+import time
+
 @st.cache_data
 def cargar_datos(archivos: list[str], tipo_carga = 'GitHub') -> pd.DataFrame:
     lista_dfs = []
@@ -97,8 +99,14 @@ archivos_trabajo = ["https://agrae-my.sharepoint.com/:x:/g/personal/victor_marti
                     "https://agrae-my.sharepoint.com/:x:/g/personal/victor_martinez_agrae_es/IQAO3Yl2lXXfSaBqUs209w-zAeBIUaomiS4h3rJaUr0G3Do"]
 tipo_carga = 'OneDrive' # 'GitHub', 'OneDrive'
 
+st.write("Antes de cargar los datos")
 datos_df = cargar_datos(archivos_trabajo, tipo_carga)
+
+st.write("Después de cargar los datos")
+time.sleep(30)
+
 columnas_disponibles = list(datos_df.columns)
+st.write("Columnas obtenidas")
 
 
 # -----------------------------------------------------
