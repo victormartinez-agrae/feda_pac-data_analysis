@@ -111,7 +111,7 @@ def reset_todo():
     st.session_state["columnas_a_filtrar"] = []
     st.session_state["texto_busqueda"] = ""
     st.session_state["col_agrupacion"] = "(Ninguno)"
-    st.session_state["seccion_activa"] = "📋 Visualización"
+    st.session_state["seccion_activa"] = "📋 Visualización general"
 
 
 # -----------------------------------------------------
@@ -203,7 +203,7 @@ med_sin_clasificar = sorted(set(TODAS_MEDIDAS) - set(med_recurrentes) - set(med_
 # -----------------------------------------------------
 # 6. SELECTOR DE SECCIÓN (sustituye a st.tabs)
 # -----------------------------------------------------
-OPCIONES_SECCION = ["📋 Visualización", "⚙️ Configuración", 
+OPCIONES_SECCION = ["📋 Visualización general", "⚙️ Configuración", 
                     "🗺️ Seleccionar ubicación", "📍 Provincia/municipio", "👶 Jóvenes agricultores"]
 
 if "seccion_activa" not in st.session_state:
