@@ -41,28 +41,19 @@ def cargar_csv_onedrive_publico(url_compartido: str) -> pd.DataFrame:
 # -----------------------------------------------------
 st.title("📋 Explorador de Datos FEDA PAC")
 
-import warnings
-import time
-
 @st.cache_data
 def cargar_datos(archivos: list[str], tipo_carga = 'GitHub') -> pd.DataFrame:
     lista_dfs = []
     for fichero in archivos:
         st.caption(f"Leyendo {fichero} ...")
 
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
                 
-            if tipo_carga=='GitHub':
-                df_aux = cargar_csv(fichero)
-            elif tipo_carga=='OneDrive':
-                df_aux = cargar_csv_onedrive_publico(fichero)
-            else:
-                raise ValueError('Tipo de carga de ficheros no contemplado en el código')
-
-            if w:
-                for aviso in w:
-                    st.warning(f"⚠️ En **{fichero}**: {aviso.message}")
+        if tipo_carga=='GitHub':
+            df_aux = cargar_csv(fichero)
+        elif tipo_carga=='OneDrive':
+            df_aux = cargar_csv_onedrive_publico(fichero)
+        else:
+            raise ValueError('Tipo de carga de ficheros no contemplado en el código')
         
         df_aux['CONVOCATORIA'] = fichero[-8:-4]
         lista_dfs.append(df_aux)
@@ -100,14 +91,9 @@ archivos_trabajo = ["TOP1000-Beneficiarios_municipio_ejercicio_financiero_2023.c
 #archivos_trabajo = ["https://agrae-my.sharepoint.com/:x:/g/personal/victor_martinez_agrae_es/IQD8fEXV6IhCQZCe7YtvXg-7AYQl4G8whgZVNpUPAKMNc5w"]
 tipo_carga = 'GitHub' # 'GitHub', 'OneDrive'
 
-st.write("Antes de cargar los datos")
 datos_df = cargar_datos(archivos_trabajo, tipo_carga)
 
-st.write("Después de cargar los datos")
-time.sleep(30)
-
 columnas_disponibles = list(datos_df.columns)
-st.write("Columnas obtenidas")
 
 
 # -----------------------------------------------------
@@ -218,7 +204,7 @@ med_sin_clasificar = sorted(set(TODAS_MEDIDAS) - set(med_recurrentes) - set(med_
 # 6. SELECTOR DE SECCIÓN (sustituye a st.tabs)
 # -----------------------------------------------------
 OPCIONES_SECCION = ["📋 Visualización", "⚙️ Configuración", 
-                    "🔗 Cruce", "📍 Provincia/municipio", "👶 Jóvenes agricultores"]
+                    "🗺️ Seleccionar ubicación", "📍 Provincia/municipio", "👶 Jóvenes agricultores"]
 
 if "seccion_activa" not in st.session_state:
     st.session_state["seccion_activa"] = OPCIONES_SECCION[0]
@@ -240,10 +226,10 @@ st.divider()
 # =======================================================
 # SECCIÓN: VISUALIZACIÓN
 # =======================================================
-if seccion_activa == "📋 Visualización":
+if seccion_activa == "📋 Visualización general":
 
     # --- 6.1. Opciones de visualización ---
-    with st.expander("⚙️ Opciones de visualización", expanded=True):
+    with st.expander("⚙️ Opciones de visualización general", expanded=True):
         if "columnas_seleccionadas" not in st.session_state:
             st.session_state["columnas_seleccionadas"] = columnas_disponibles
         columnas_seleccionadas = st.multiselect(
@@ -486,9 +472,9 @@ elif seccion_activa == "⚙️ Configuración":
 
 
 # =======================================================
-# SECCIÓN: CRUCE
+# SECCIÓN: SELECCIONAR UBICACIÓN
 # =======================================================
-elif seccion_activa == "🔗 Cruce":
+elif seccion_activa == "🗺️ Seleccionar ubicación":
     st.write("ToDo")
 
 
