@@ -4,3 +4,7 @@ pyarrow>=14,<21
 numpy>=1.26,<3
 requests>=2.31,<3
 PyGithub>=2.3,<3
+streamlit-folium>=0.20,<1
+folium>=0.16,<1
+shapely>=2.0,<3
+geopy>=2.4,<3
