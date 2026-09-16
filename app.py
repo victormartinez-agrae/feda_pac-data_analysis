@@ -204,7 +204,7 @@ med_sin_clasificar = sorted(set(TODAS_MEDIDAS) - set(med_recurrentes) - set(med_
 # 6. SELECTOR DE SECCIÓN (sustituye a st.tabs)
 # -----------------------------------------------------
 OPCIONES_SECCION = ["📋 Visualización general", "⚙️ Configuración", 
-                    "🗺️ Seleccionar ubicación", "📍 Provincia/municipio", "👶 Jóvenes agricultores"]
+                    "🗺️ Ubicación", "📍 Provincia/municipio", "👶 Jóvenes agricultores"]
 
 if "seccion_activa" not in st.session_state:
     st.session_state["seccion_activa"] = OPCIONES_SECCION[0]
@@ -474,9 +474,50 @@ elif seccion_activa == "⚙️ Configuración":
 # =======================================================
 # SECCIÓN: SELECCIONAR UBICACIÓN
 # =======================================================
-elif seccion_activa == "🗺️ Seleccionar ubicación":
-    st.write("ToDo")
+elif seccion_activa == "🗺️ Ubicación":
+    st.subheader("🗺️ Selección de ubicación")
 
+    subtab_lista, subtab_mapa = st.tabs(["📋 Lista (provincia/municipio)", "🗺️ Mapa (ROI)"])
+
+    with subtab_lista:
+        provincias_existentes = sorted(datos_df["PROVINCIA"].dropna().unique())
+
+        provincias_sel_ubi = st.multiselect(
+            "Provincias",
+            options=provincias_existentes,
+            key="provincias_sel_ubicacion",
+        )
+
+        # Municipios disponibles según las provincias elegidas
+        if provincias_sel_ubi:
+            municipios_disp_ubi = sorted(
+                datos_df.loc[datos_df["PROVINCIA"].isin(provincias_sel_ubi), "MUNICIPIO"].dropna().unique(),
+                key=lambda s: s.split(" - ", 1)[-1] if " - " in s else s,
+            )
+        else:
+            municipios_disp_ubi = []
+
+        col_btn, _ = st.columns([1, 3])
+        with col_btn:
+            if st.button("✅ Seleccionar todos los municipios de estas provincias"):
+                st.session_state["municipios_sel_ubicacion"] = municipios_disp_ubi
+
+        if "municipios_sel_ubicacion" not in st.session_state:
+            st.session_state["municipios_sel_ubicacion"] = []
+
+        # Salvaguarda: descarta municipios que ya no correspondan a las provincias elegidas
+        st.session_state["municipios_sel_ubicacion"] = [
+            m for m in st.session_state["municipios_sel_ubicacion"] if m in municipios_disp_ubi
+        ]
+
+        municipios_sel_ubi = st.multiselect(
+            "Municipios",
+            options=municipios_disp_ubi,
+            key="municipios_sel_ubicacion",
+            format_func=lambda s: s.split(" - ", 1)[-1] if " - " in s else s,
+        )
+
+        st.caption(f"{len(municipios_sel_ubi)} municipios seleccionados")
 
 # =======================================================
 # SECCIÓN: PROVINCIA/MUNICIPIO
