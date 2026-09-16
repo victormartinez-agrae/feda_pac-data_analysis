@@ -10,6 +10,8 @@ from shapely.geometry import Point, shape
 from geopy.geocoders import Nominatim
 from geopy.extra.rate_limiter import RateLimiter
 from github import Github, GithubException
+import unicodedata
+import re
 
 st.set_page_config(page_title="Explorador de Datos", layout="wide")
 
@@ -86,9 +88,26 @@ def cargar_tabla_ine_cyl() -> pd.DataFrame:
 tabla_ine = cargar_tabla_ine_cyl()
 
 # Mapeo datos INE
-def extraer_codigo_ine(municipio_str: str) -> str:
-    """Extrae los 5 primeros caracteres de 'XXXXX - Nombre'."""
-    return municipio_str[:5] if isinstance(municipio_str, str) else None
+# La primera rama cubre el caso "nombre articulo" → "articulo nombre"; la segunda cubre el caso inverso "articulo nombre" → "nombre articulo". Así funciona sin importar en qué formato venga cada lado.
+def normalizar_texto(s: str) -> str:
+    """Minúsculas, sin tildes, sin puntuación, espacios colapsados."""
+    if not isinstance(s, str):
+        return ""
+    s = unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode("ascii")
+    s = s.lower().strip()
+    s = re.sub(r"[^a-z0-9\s]", " ", s)
+    s = re.sub(r"\s+", " ", s).strip()
+    return s
+def variante_articulo_al_final(nombre_norm: str) -> str | None:
+    """Convierte 'la adrada' -> 'adrada la', o viceversa detecta el patrón INE."""
+    articulos = {"el", "la", "los", "las", "l", "els", "na", "ses"}
+    partes = nombre_norm.split()
+    if len(partes) >= 2:
+        if partes[-1] in articulos:
+            return " ".join(partes[:-1]) if False else partes[-1] + " " + " ".join(partes[:-1])
+        if partes[0] in articulos:
+            return " ".join(partes[1:]) + " " + partes[0]
+    return None
 
 # Coordenadas de municipios
 FILE_COORDS = CONFIG_DIR / "coordenadas_municipios.json"
@@ -214,18 +233,61 @@ datos_df = cargar_datos(archivos_trabajo, tipo_carga)
 
 columnas_disponibles = list(datos_df.columns)
 
-# Cruce de MUNICIPIO con tablas INE
+# Cruce de MUNICIPIO con tabla INE, por nombre + provincia (el código de MUNICIPIO es postal, no INE)
+
+tabla_ine["NOMBRE_NORM"] = tabla_ine["NOMBRE"].apply(normalizar_texto)
+tabla_ine["PROVINCIA_NORM"] = tabla_ine["PROVINCIA"].apply(normalizar_texto)
+
+# Índice de búsqueda: (provincia_norm, nombre_norm) -> (CODIGO_INE, NOMBRE oficial)
+ine_index = {}
+for fila in tabla_ine.itertuples():
+    clave = (fila.PROVINCIA_NORM, fila.NOMBRE_NORM)
+    ine_index[clave] = (fila.CODIGO_INE, fila.NOMBRE)
+
+    variante = variante_articulo_al_final(fila.NOMBRE_NORM)
+    if variante:
+        clave_variante = (fila.PROVINCIA_NORM, variante)
+        ine_index.setdefault(clave_variante, (fila.CODIGO_INE, fila.NOMBRE))
+
+
+def extraer_nombre_municipio(municipio_str: str) -> str:
+    """Extrae el nombre tras 'XXXXX - ', sin el código postal."""
+    return municipio_str.split(" - ", 1)[-1] if isinstance(municipio_str, str) and " - " in municipio_str else municipio_str
+
+
+def buscar_codigo_ine(provincia: str, nombre_municipio: str):
+    nombre_norm = normalizar_texto(nombre_municipio)
+    provincia_norm = normalizar_texto(provincia)
+
+    clave = (provincia_norm, nombre_norm)
+    if clave in ine_index:
+        return ine_index[clave]
+
+    variante = variante_articulo_al_final(nombre_norm)
+    if variante:
+        clave_variante = (provincia_norm, variante)
+        if clave_variante in ine_index:
+            return ine_index[clave_variante]
+
+    return (None, None)
+
+
 municipios_unicos = datos_df[["MUNICIPIO", "PROVINCIA"]].drop_duplicates().copy()
-municipios_unicos["CODIGO_INE"] = municipios_unicos["MUNICIPIO"].apply(extraer_codigo_ine)
+municipios_unicos["NOMBRE_MUNICIPIO"] = municipios_unicos["MUNICIPIO"].apply(extraer_nombre_municipio)
 
-municipios_con_ine = municipios_unicos.merge(
-    tabla_ine, on="CODIGO_INE", how="left", suffixes=("", "_ine")
+resultados = municipios_unicos.apply(
+    lambda fila: buscar_codigo_ine(fila["PROVINCIA"], fila["NOMBRE_MUNICIPIO"]),
+    axis=1, result_type="expand",
 )
+resultados.columns = ["CODIGO_INE", "NOMBRE"]
 
-sin_match = municipios_con_ine[municipios_con_ine["NOMBRE"].isna()]
+municipios_con_ine = pd.concat([municipios_unicos, resultados], axis=1)
+
+sin_match = municipios_con_ine[municipios_con_ine["CODIGO_INE"].isna()]
 if not sin_match.empty:
     st.warning(f"{len(sin_match)} municipios no encontraron correspondencia en la tabla INE.")
     st.dataframe(sin_match)
+
 if "coords_municipios" not in st.session_state:
     st.session_state["coords_municipios"] = cargar_coordenadas_guardadas()
 
