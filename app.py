@@ -9,8 +9,19 @@ from folium.plugins import Draw
 from shapely.geometry import Point, shape
 from geopy.geocoders import Nominatim
 from geopy.extra.rate_limiter import RateLimiter
+from github import Github, GithubException
 
 st.set_page_config(page_title="Explorador de Datos", layout="wide")
+
+
+# ----------------------------------------------------
+# 0. CONFIGURACIÓN - Conexión a GitHub
+# ----------------------------------------------------
+CONFIG_DIR = Path("config")
+FILE_CLASIFICACION = CONFIG_DIR / "clasificacion_medidas.json"
+
+GITHUB_REPO_NAME = "victormartinez-agrae/feda_pac-data_analysis"
+
 
 # ----------------------------------------------------
 # 1. CONFIGURACIÓN: rutas a los CSV
@@ -82,7 +93,6 @@ def extraer_codigo_ine(municipio_str: str) -> str:
 # Coordenadas de municipios
 FILE_COORDS = CONFIG_DIR / "coordenadas_municipios.json"
 RUTA_FICHERO_COORDS_REPO = "config/coordenadas_municipios.json"
-
 
 def cargar_coordenadas_guardadas() -> dict:
     """Lee las coordenadas ya geocodificadas y guardadas en el repo."""
@@ -255,14 +265,7 @@ def preparar_para_mostrar(df):
 # 5. CONFIGURACIÓN REPO
 # -----------------------------------------------------
 import json
-from github import Github, GithubException
-
-CONFIG_DIR = Path("config")
-FILE_CLASIFICACION = CONFIG_DIR / "clasificacion_medidas.json"
-
-GITHUB_REPO_NAME = "victormartinez-agrae/feda_pac-data_analysis"
 RUTA_FICHERO_CONFIG_REPO = "config/clasificacion_medidas.json"
-
 
 def cargar_clasificacion_guardada() -> dict:
     """Lee la clasificación guardada en el repo (copia local clonada)."""
