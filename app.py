@@ -3,6 +3,12 @@ import pandas as pd
 from pathlib import Path
 import requests
 import io
+from streamlit_folium import st_folium
+import folium
+from folium.plugins import Draw
+from shapely.geometry import Point, shape
+from geopy.geocoders import Nominatim
+from geopy.extra.rate_limiter import RateLimiter
 
 st.set_page_config(page_title="Explorador de Datos", layout="wide")
 
@@ -35,6 +41,122 @@ def cargar_csv_onedrive_publico(url_compartido: str) -> pd.DataFrame:
         encoding_errors='backslashreplace',
         dtype={'GRUPO_EMPRESA': str},
     )
+
+
+# -----------------------------------------------------
+# 1. DESCARGA DATOS INE MUNICIPIOS
+# -----------------------------------------------------
+URL_DICCIONARIO_INE = "https://www.ine.es/daco/daco42/codmun/diccionario26.xlsx"
+CPRO_A_PROVINCIA_CYL = {
+    "05": "Ávila", "09": "Burgos", "24": "León", "34": "Palencia",
+    "37": "Salamanca", "40": "Segovia", "42": "Soria",
+    "47": "Valladolid", "49": "Zamora",
+}
+
+@st.cache_data
+def cargar_tabla_ine_cyl() -> pd.DataFrame:
+    """
+    Descarga el diccionario oficial de municipios del INE y construye
+    CODIGO_INE -> nombre oficial + provincia, solo para las 9 provincias de CyL.
+    """
+    resp = requests.get(URL_DICCIONARIO_INE, timeout=30)
+    resp.raise_for_status()
+
+    df = pd.read_excel(io.BytesIO(resp.content), header=1, dtype=str)
+    df["CPRO"] = df["CPRO"].str.zfill(2)
+    df["CMUN"] = df["CMUN"].str.zfill(3)
+    df["CODIGO_INE"] = df["CPRO"] + df["CMUN"]
+
+    df_cyl = df[df["CPRO"].isin(CPRO_A_PROVINCIA_CYL.keys())].copy()
+    df_cyl["PROVINCIA"] = df_cyl["CPRO"].map(CPRO_A_PROVINCIA_CYL)
+
+    return df_cyl[["CODIGO_INE", "NOMBRE", "PROVINCIA"]]
+
+tabla_ine = cargar_tabla_ine_cyl()
+
+# Mapeo datos INE
+def extraer_codigo_ine(municipio_str: str) -> str:
+    """Extrae los 5 primeros caracteres de 'XXXXX - Nombre'."""
+    return municipio_str[:5] if isinstance(municipio_str, str) else None
+
+
+municipios_unicos = datos_df[["MUNICIPIO", "PROVINCIA"]].drop_duplicates().copy()
+municipios_unicos["CODIGO_INE"] = municipios_unicos["MUNICIPIO"].apply(extraer_codigo_ine)
+
+municipios_con_ine = municipios_unicos.merge(
+    tabla_ine, on="CODIGO_INE", how="left", suffixes=("", "_ine")
+)
+
+sin_match = municipios_con_ine[municipios_con_ine["NOMBRE"].isna()]
+if not sin_match.empty:
+    st.warning(f"{len(sin_match)} municipios no encontraron correspondencia en la tabla INE.")
+    st.dataframe(sin_match)
+
+# Coordenadas de municipios
+FILE_COORDS = CONFIG_DIR / "coordenadas_municipios.json"
+RUTA_FICHERO_COORDS_REPO = "config/coordenadas_municipios.json"
+
+
+def cargar_coordenadas_guardadas() -> dict:
+    """Lee las coordenadas ya geocodificadas y guardadas en el repo."""
+    if FILE_COORDS.exists():
+        try:
+            with open(FILE_COORDS, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except (json.JSONDecodeError, OSError):
+            return {}
+    return {}
+
+
+def guardar_coordenadas_en_github(coords: dict) -> bool:
+    """Escribe el diccionario de coordenadas en GitHub."""
+    contenido = json.dumps(coords, ensure_ascii=False, indent=2)
+    try:
+        g = Github(st.secrets["github_token"])
+        repo = g.get_repo(GITHUB_REPO_NAME)
+        try:
+            archivo_actual = repo.get_contents(RUTA_FICHERO_COORDS_REPO)
+            repo.update_file(
+                path=RUTA_FICHERO_COORDS_REPO,
+                message="Actualiza coordenadas de municipios",
+                content=contenido,
+                sha=archivo_actual.sha,
+            )
+        except GithubException as e:
+            if e.status == 404:
+                repo.create_file(
+                    path=RUTA_FICHERO_COORDS_REPO,
+                    message="Crea fichero de coordenadas de municipios",
+                    content=contenido,
+                )
+            else:
+                raise
+        return True
+    except Exception as e:
+        st.error(f"Error al guardar coordenadas en GitHub: {e}")
+        return False
+
+
+# --- Geocodificador con límite de 1 petición/segundo (política de Nominatim) ---
+_geolocator = Nominatim(user_agent="streamlit_feda_pac_app")
+_geocode_con_limite = RateLimiter(_geolocator.geocode, min_delay_seconds=1)
+
+
+def geocodificar_municipio(nombre_municipio_limpio: str, provincia: str):
+    """Devuelve (lat, lon) o None si no se encuentra."""
+    consulta = f"{nombre_municipio_limpio}, {provincia}, España"
+    try:
+        ubicacion = _geocode_con_limite(consulta)
+        if ubicacion:
+            return (ubicacion.latitude, ubicacion.longitude)
+    except Exception:
+        pass
+    return None
+
+# --- Inicialización global: coordenadas ya geocodificadas ---
+if "coords_municipios" not in st.session_state:
+    st.session_state["coords_municipios"] = cargar_coordenadas_guardadas()
+
 
 # -----------------------------------------------------
 # 2. PREPARACIÓN DE DATOS
@@ -477,8 +599,14 @@ elif seccion_activa == "⚙️ Configuración":
 elif seccion_activa == "🗺️ Ubicación":
     st.subheader("🗺️ Selección de ubicación")
 
+    if "municipios_sel_ubicacion" not in st.session_state:
+        st.session_state["municipios_sel_ubicacion"] = []
+
     subtab_lista, subtab_mapa = st.tabs(["📋 Lista (provincia/municipio)", "🗺️ Mapa (ROI)"])
 
+    # ============================================================
+    # SUBTAB 1: LISTA
+    # ============================================================
     with subtab_lista:
         provincias_existentes = sorted(datos_df["PROVINCIA"].dropna().unique())
 
@@ -488,7 +616,6 @@ elif seccion_activa == "🗺️ Ubicación":
             key="provincias_sel_ubicacion",
         )
 
-        # Municipios disponibles según las provincias elegidas
         if provincias_sel_ubi:
             municipios_disp_ubi = sorted(
                 datos_df.loc[datos_df["PROVINCIA"].isin(provincias_sel_ubi), "MUNICIPIO"].dropna().unique(),
@@ -497,15 +624,9 @@ elif seccion_activa == "🗺️ Ubicación":
         else:
             municipios_disp_ubi = []
 
-        col_btn, _ = st.columns([1, 3])
-        with col_btn:
-            if st.button("✅ Seleccionar todos los municipios de estas provincias"):
-                st.session_state["municipios_sel_ubicacion"] = municipios_disp_ubi
+        if st.button("✅ Seleccionar todos los municipios de estas provincias"):
+            st.session_state["municipios_sel_ubicacion"] = municipios_disp_ubi
 
-        if "municipios_sel_ubicacion" not in st.session_state:
-            st.session_state["municipios_sel_ubicacion"] = []
-
-        # Salvaguarda: descarta municipios que ya no correspondan a las provincias elegidas
         st.session_state["municipios_sel_ubicacion"] = [
             m for m in st.session_state["municipios_sel_ubicacion"] if m in municipios_disp_ubi
         ]
@@ -518,6 +639,88 @@ elif seccion_activa == "🗺️ Ubicación":
         )
 
         st.caption(f"{len(municipios_sel_ubi)} municipios seleccionados")
+
+    # ============================================================
+    # SUBTAB 2: MAPA (ROI)
+    # ============================================================
+    with subtab_mapa:
+        TODOS_MUNICIPIOS = sorted(datos_df["MUNICIPIO"].dropna().unique())
+
+        def clave_coord(municipio, provincia):
+            return f"{municipio}||{provincia}"
+
+        pendientes = []
+        for _, fila in datos_df[["MUNICIPIO", "PROVINCIA"]].drop_duplicates().iterrows():
+            k = clave_coord(fila["MUNICIPIO"], fila["PROVINCIA"])
+            if k not in st.session_state["coords_municipios"]:
+                pendientes.append((fila["MUNICIPIO"], fila["PROVINCIA"]))
+
+        if pendientes:
+            st.warning(f"Faltan coordenadas de {len(pendientes)} municipios. Es necesario geocodificarlos antes de usar el mapa.")
+            if st.button(f"📡 Geocodificar {len(pendientes)} municipios pendientes"):
+                barra = st.progress(0)
+                for i, (municipio, provincia) in enumerate(pendientes):
+                    nombre_limpio = municipio.split(" - ", 1)[-1] if " - " in municipio else municipio
+                    coords = geocodificar_municipio(nombre_limpio, provincia)
+                    if coords:
+                        st.session_state["coords_municipios"][clave_coord(municipio, provincia)] = coords
+                    barra.progress((i + 1) / len(pendientes))
+                st.success("Geocodificación completada.")
+                st.rerun()
+        else:
+            st.success(f"✅ Coordenadas disponibles para los {len(TODOS_MUNICIPIOS)} municipios.")
+
+            if st.button("💾 Guardar coordenadas en GitHub (persistir)"):
+                ok = guardar_coordenadas_en_github(st.session_state["coords_municipios"])
+                if ok:
+                    st.success("Coordenadas guardadas correctamente en GitHub.")
+
+            # --- Mapa con herramienta de dibujo (rectángulo o polígono libre) ---
+            mapa = folium.Map(location=[41.6, -4.7], zoom_start=8)  # centrado aprox. en Castilla y León
+            Draw(
+                export=False,
+                draw_options={
+                    "polyline": False,
+                    "circle": False,
+                    "circlemarker": False,
+                    "marker": False,
+                    "rectangle": True,
+                    "polygon": True,
+                },
+            ).add_to(mapa)
+
+            resultado_mapa = st_folium(mapa, width=700, height=500, key="mapa_roi")
+
+            geometria_dibujada = None
+            if resultado_mapa and resultado_mapa.get("last_active_drawing"):
+                geometria_dibujada = resultado_mapa["last_active_drawing"]["geometry"]
+
+            if geometria_dibujada:
+                poligono_roi = shape(geometria_dibujada)
+
+                municipios_en_roi = []
+                for municipio, provincia in datos_df[["MUNICIPIO", "PROVINCIA"]].drop_duplicates().itertuples(index=False):
+                    coords = st.session_state["coords_municipios"].get(clave_coord(municipio, provincia))
+                    if coords:
+                        lat, lon = coords
+                        if poligono_roi.contains(Point(lon, lat)):  # shapely usa (x=lon, y=lat)
+                            municipios_en_roi.append(municipio)
+
+                st.caption(f"📍 {len(municipios_en_roi)} municipios dentro de la ROI dibujada")
+
+                col_add, col_replace = st.columns(2)
+                with col_add:
+                    if st.button("➕ Añadir estos municipios a la selección"):
+                        actual = set(st.session_state["municipios_sel_ubicacion"])
+                        st.session_state["municipios_sel_ubicacion"] = sorted(actual | set(municipios_en_roi))
+                        st.rerun()
+                with col_replace:
+                    if st.button("🔁 Sustituir selección por estos municipios"):
+                        st.session_state["municipios_sel_ubicacion"] = municipios_en_roi
+                        st.rerun()
+            else:
+                st.info("Dibuja un rectángulo o polígono en el mapa para seleccionar municipios.")
+
 
 # =======================================================
 # SECCIÓN: PROVINCIA/MUNICIPIO
